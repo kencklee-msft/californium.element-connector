@@ -9,7 +9,6 @@ public class RawInboundClientHandler extends ChannelInboundHandlerAdapter{
 	@Override
 	public void channelActive(final ChannelHandlerContext ctx) throws Exception {
 		System.out.println("channel active");
-		ctx.writeAndFlush(ctx.alloc().buffer(0).writeBytes("Loggedin".getBytes()));
 	}
 
 	@Override

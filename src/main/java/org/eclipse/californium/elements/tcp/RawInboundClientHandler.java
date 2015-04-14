@@ -1,9 +1,7 @@
 package org.eclipse.californium.elements.tcp;
 
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.util.CharsetUtil;
 
 
 public class RawInboundClientHandler extends ChannelInboundHandlerAdapter{
@@ -16,10 +14,7 @@ public class RawInboundClientHandler extends ChannelInboundHandlerAdapter{
 
 	@Override
 	public void channelRead(final ChannelHandlerContext ctx, final Object msg) throws Exception {
-		final ByteBuf bb = (ByteBuf)msg;
-		bb.setIndex(0, 0);
-		bb.writeBytes("MOD".getBytes());
-		super.channelRead(ctx, bb);
+		super.channelRead(ctx, msg);
 	}
 	
 	@Override

@@ -19,7 +19,7 @@ public class TCPClientConnector implements StatefulConnector {
 	
 	private static final Logger LOG = Logger.getLogger( TCPClientConnector.class.getName() );
 	
-	private final MessageInboundTransponder transponder = new MessageInboundTransponder();
+	private final MessageInboundTransponder transponder;
 	private final String addr;
 	private final int port;
 	
@@ -37,6 +37,7 @@ public class TCPClientConnector implements StatefulConnector {
 	public TCPClientConnector(final String addr, final int port, final ConnectionStateListener csl) {
 		this.addr = addr;
 		this.port = port;
+		transponder = new MessageInboundTransponder(addr, port);
 		this.csl = csl;
 	}
 

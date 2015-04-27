@@ -11,7 +11,7 @@ public class RawOutboundClientHandler extends ChannelOutboundHandlerAdapter{
 	@Override
 	public void write(final ChannelHandlerContext ctx, final Object msg, final ChannelPromise promise) throws Exception {
 		final byte[] message = (byte[])msg;
-		
+		System.out.println("will allocate a buffer of " + message.length);
 		final ByteBuf bb = ctx.alloc().buffer(message.length);
 		bb.writeBytes(message);
 		ctx.write(bb, promise);

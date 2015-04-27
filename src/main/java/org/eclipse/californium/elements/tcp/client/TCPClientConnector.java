@@ -48,7 +48,7 @@ public class TCPClientConnector implements StatefulConnector {
 	
 	@Override
 	public void start(final boolean wait) throws IOException {
-		LOG.info("Staring TCP connector");
+		LOG.info("Staring TCP CLIENT connector");
 		netAddr = new InetSocketAddress(addr, port);
 		workerPool = new NioEventLoopGroup();
 		

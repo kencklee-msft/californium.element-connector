@@ -1,6 +1,7 @@
 package org.eclipse.californium.elements.tcp.server;
 
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelOption;
@@ -15,37 +16,38 @@ import java.util.logging.Logger;
 import org.eclipse.californium.elements.RawData;
 import org.eclipse.californium.elements.RawDataChannel;
 import org.eclipse.californium.elements.StatefulConnector;
-import org.eclipse.californium.elements.tcp.TcpChannelInitializer;
 import org.eclipse.californium.elements.tcp.client.MessageInboundTransponder;
 
-public class TCPServerConnector implements StatefulConnector {
+public class TcpServerConnector implements StatefulConnector {
 	
-	private static final Logger LOG = Logger.getLogger( TCPServerConnector.class.getName() );
+	private static final Logger LOG = Logger.getLogger( TcpServerConnector.class.getName() );
 
 	
 	private final InetSocketAddress address;	
 	private final MessageInboundTransponder transponder;
+	private final TcpServerConnectionMgr connMgr;
 
 	private EventLoopGroup bossGroup;
 	private EventLoopGroup workerGroup;
 	private ChannelFuture communicationChannel;
 
 
-	public TCPServerConnector() {
+	public TcpServerConnector() {
 		this(null);
 	}
 	
-	public TCPServerConnector(final int port) {
+	public TcpServerConnector(final int port) {
 		this(new InetSocketAddress(port));
 	}
 	
-	public TCPServerConnector(final String address, final int port) {
+	public TcpServerConnector(final String address, final int port) {
 		this(new InetSocketAddress(address, port));
 	}
 
-	public TCPServerConnector(final InetSocketAddress address) {
+	public TcpServerConnector(final InetSocketAddress address) {
 		this.address = address;
 		transponder = new MessageInboundTransponder(address.getHostName(), address.getPort());
+		connMgr = new TcpServerConnectionMgr();
 	}
 	
 	@Override
@@ -56,10 +58,10 @@ public class TCPServerConnector implements StatefulConnector {
 
 	@Override
 	public void start() throws IOException {
-		LOG.info("Staring TCP SERVER connector");
+		LOG.info("Staring TCP SERVER connector with Xconn");
 		bossGroup = new NioEventLoopGroup();
 		workerGroup = new NioEventLoopGroup();
-		final TcpChannelInitializer init = new TcpChannelInitializer(transponder);
+		final TcpServerChannelInitializer init = new TcpServerChannelInitializer(transponder, connMgr);
 		final ServerBootstrap bootsrap = new ServerBootstrap();
 		bootsrap.group(bossGroup, workerGroup)
 				.localAddress(address.getPort())
@@ -87,14 +89,21 @@ public class TCPServerConnector implements StatefulConnector {
 
 	@Override
 	public void send(final RawData msg) {
-		System.out.println("Sending " + msg.getSize() + " byte");
-		communicationChannel.channel().writeAndFlush(msg.getBytes()).addListener(new ChannelFutureListener() {
+		final Channel ch = connMgr.getChannel(msg.getInetSocketAddress());
+		if(ch != null) {
+			System.out.println("Sending " + msg.getSize() + " byte" + " to " + ch.remoteAddress().toString());
 			
-			@Override
-			public void operationComplete(final ChannelFuture future) throws Exception {
-				printOperationState(future);
-			}
-		});
+			ch.writeAndFlush(msg.getBytes()).addListener(new ChannelFutureListener() {
+				
+				@Override
+				public void operationComplete(final ChannelFuture future) throws Exception {
+					printOperationState(future);
+				}
+			});
+		}
+		else {
+			System.out.println("No Channel available to message.  Unknown Connection " + msg.getAddress().toString());
+		}
 	}
 
 	@Override

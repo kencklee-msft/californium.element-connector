@@ -1,17 +1,18 @@
-package org.eclipse.californium.elements.tcp;
+package org.eclipse.californium.elements.tcp.client;
 
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
 
-import org.eclipse.californium.elements.tcp.client.MessageInboundTransponder;
+import org.eclipse.californium.elements.tcp.RawInboundClientHandler;
+import org.eclipse.californium.elements.tcp.RawOutboundClientHandler;
 
-public class TcpChannelInitializer extends ChannelInitializer<SocketChannel>{
+public class TcpClientChannelInitializer extends ChannelInitializer<SocketChannel>{
 		
 	private final MessageInboundTransponder transponder;
 	
-	public TcpChannelInitializer(final MessageInboundTransponder transponder) {
+	public TcpClientChannelInitializer(final MessageInboundTransponder transponder) {
 		this.transponder = transponder;
 	}
 

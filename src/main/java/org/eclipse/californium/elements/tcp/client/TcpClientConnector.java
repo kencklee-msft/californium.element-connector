@@ -13,11 +13,10 @@ import java.util.logging.Logger;
 import org.eclipse.californium.elements.RawData;
 import org.eclipse.californium.elements.RawDataChannel;
 import org.eclipse.californium.elements.StatefulConnector;
-import org.eclipse.californium.elements.tcp.TcpChannelInitializer;
 
-public class TCPClientConnector implements StatefulConnector {
+public class TcpClientConnector implements StatefulConnector {
 	
-	private static final Logger LOG = Logger.getLogger( TCPClientConnector.class.getName() );
+	private static final Logger LOG = Logger.getLogger( TcpClientConnector.class.getName() );
 	
 	private final MessageInboundTransponder transponder;
 	private final String addr;
@@ -30,11 +29,11 @@ public class TCPClientConnector implements StatefulConnector {
 
 	private final ConnectionStateListener csl;
 	
-	public TCPClientConnector(final String addr, final int port) {
+	public TcpClientConnector(final String addr, final int port) {
 		this(addr, port, null);
 	}
 	
-	public TCPClientConnector(final String addr, final int port, final ConnectionStateListener csl) {
+	public TcpClientConnector(final String addr, final int port, final ConnectionStateListener csl) {
 		this.addr = addr;
 		this.port = port;
 		transponder = new MessageInboundTransponder(addr, port);
@@ -52,7 +51,7 @@ public class TCPClientConnector implements StatefulConnector {
 		netAddr = new InetSocketAddress(addr, port);
 		workerPool = new NioEventLoopGroup();
 		
-		final TcpChannelInitializer init = new TcpChannelInitializer(transponder);
+		final TcpClientChannelInitializer init = new TcpClientChannelInitializer(transponder);
 		
 		final Bootstrap bootstrap = new Bootstrap();
 		bootstrap.group(workerPool)

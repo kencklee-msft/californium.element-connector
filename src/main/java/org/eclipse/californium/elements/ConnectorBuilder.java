@@ -2,8 +2,8 @@ package org.eclipse.californium.elements;
 
 import java.net.InetSocketAddress;
 
-import org.eclipse.californium.elements.tcp.client.TCPClientConnector;
-import org.eclipse.californium.elements.tcp.server.TCPServerConnector;
+import org.eclipse.californium.elements.tcp.client.TcpClientConnector;
+import org.eclipse.californium.elements.tcp.server.TcpServerConnector;
 
 public abstract class ConnectorBuilder {
 	
@@ -104,10 +104,10 @@ public abstract class ConnectorBuilder {
 		@Override
 		public StatefulConnector buildStatfulConnector() {
 			if(communicationRole.equals(CommunicationRole.CLIENT)) {
-				return new TCPClientConnector(address, port);
+				return new TcpClientConnector(address, port);
 				
 			} else if(communicationRole.equals(CommunicationRole.SERVER)) {
-				return new TCPServerConnector(address, port);
+				return new TcpServerConnector(address, port);
 			}
 			else {
 				throw new UnsupportedOperationException("No Valide Communication role was specified");
@@ -123,6 +123,7 @@ public abstract class ConnectorBuilder {
 	
 	private static class UDPConnectorBuilder extends ConnectorBuilder {
 		private final LayerSemantic layerSemantic = LayerSemantic.UDP;
+		private final CommunicationRole commRole = CommunicationRole.NODE;
 		
 		public UDPConnectorBuilder() {}
 		

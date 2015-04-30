@@ -8,7 +8,8 @@ public class RawInboundClientHandler extends ChannelInboundHandlerAdapter{
 		
 	@Override
 	public void channelActive(final ChannelHandlerContext ctx) throws Exception {
-		System.out.println("channel active");
+		System.out.println("channel active in raw Inbound Client");
+		super.channelActive(ctx);
 	}
 
 	@Override

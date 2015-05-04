@@ -52,12 +52,6 @@ public class TcpServerConnector implements StatefulConnector {
 	
 	@Override
 	public void start(final boolean wait) throws IOException {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void start() throws IOException {
 		LOG.info("Staring TCP SERVER connector with Xconn");
 		bossGroup = new NioEventLoopGroup();
 		workerGroup = new NioEventLoopGroup();
@@ -71,6 +65,19 @@ public class TcpServerConnector implements StatefulConnector {
 				.childOption(ChannelOption.SO_KEEPALIVE, true);
 
 		communicationChannel = bootsrap.bind();
+		
+		if(wait) {
+			try {
+				communicationChannel.sync();
+			} catch (final InterruptedException e) {
+				System.err.println("Waiting for connection was interupted");
+			}
+		}
+	}
+
+	@Override
+	public void start() throws IOException {
+		start(false);
 	}
 
 	@Override

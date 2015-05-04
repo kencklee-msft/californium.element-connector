@@ -20,6 +20,8 @@ public class TcpServerConnectionMgr extends ChannelInboundHandlerAdapter{
 	@Override
 	public void channelActive(final ChannelHandlerContext ctx) throws Exception {
 		System.out.println("Channel Avtive " + ctx.channel().remoteAddress().toString() + " " + Math.random());
+		final String address;
+		final int port;
 		connections.put((InetSocketAddress)ctx.channel().remoteAddress(), ctx.channel());
 		super.channelActive(ctx);
 	}

@@ -5,6 +5,7 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
 
+import org.eclipse.californium.elements.tcp.MessageInboundTransponder;
 import org.eclipse.californium.elements.tcp.RawInboundClientHandler;
 import org.eclipse.californium.elements.tcp.RawOutboundClientHandler;
 

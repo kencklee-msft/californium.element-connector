@@ -1,4 +1,4 @@
-package org.eclipse.californium.elements.tcp.client;
+package org.eclipse.californium.elements.tcp;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandler.Sharable;

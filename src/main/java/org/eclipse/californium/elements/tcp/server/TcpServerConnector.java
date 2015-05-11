@@ -16,9 +16,12 @@ import java.util.logging.Logger;
 import org.eclipse.californium.elements.RawData;
 import org.eclipse.californium.elements.RawDataChannel;
 import org.eclipse.californium.elements.StatefulConnector;
-import org.eclipse.californium.elements.tcp.client.MessageInboundTransponder;
+import org.eclipse.californium.elements.tcp.ConnectionInfo;
+import org.eclipse.californium.elements.tcp.MessageInboundTransponder;
+import org.eclipse.californium.elements.tcp.ConnectionInfo.ConnectionState;
+import org.eclipse.californium.elements.tcp.ConnectionStateListener;
 
-public class TcpServerConnector implements StatefulConnector {
+public class TcpServerConnector implements StatefulConnector, RemoteConnectionListener {
 	
 	private static final Logger LOG = Logger.getLogger( TcpServerConnector.class.getName() );
 
@@ -30,24 +33,33 @@ public class TcpServerConnector implements StatefulConnector {
 	private EventLoopGroup bossGroup;
 	private EventLoopGroup workerGroup;
 	private ChannelFuture communicationChannel;
+	private ConnectionState state = ConnectionState.DISCONNECTED;
+
+
+	private ConnectionStateListener csl;
 
 
 	public TcpServerConnector() {
-		this(null);
+		this(null, null);
 	}
 	
 	public TcpServerConnector(final int port) {
-		this(new InetSocketAddress(port));
+		this(new InetSocketAddress(port), null);
 	}
 	
 	public TcpServerConnector(final String address, final int port) {
-		this(new InetSocketAddress(address, port));
+		this(new InetSocketAddress(address, port), null);
+	}
+	
+	public TcpServerConnector(final String address, final int port, final ConnectionStateListener csl) {
+		this(new InetSocketAddress(address, port), csl);
 	}
 
-	public TcpServerConnector(final InetSocketAddress address) {
+	public TcpServerConnector(final InetSocketAddress address, final ConnectionStateListener csl) {
 		this.address = address;
 		transponder = new MessageInboundTransponder(address.getHostName(), address.getPort());
-		connMgr = new TcpServerConnectionMgr();
+		connMgr = new TcpServerConnectionMgr(this);
+		this.csl = csl;
 	}
 	
 	@Override
@@ -65,7 +77,15 @@ public class TcpServerConnector implements StatefulConnector {
 				.childOption(ChannelOption.SO_KEEPALIVE, true);
 
 		communicationChannel = bootsrap.bind();
-		
+		communicationChannel.addListener(new ChannelFutureListener() {
+			
+			@Override
+			public void operationComplete(final ChannelFuture future) throws Exception {
+				printOperationState(future);
+				incomingConnectionStateChange(new ConnectionInfo(ConnectionState.CONNECTED, (InetSocketAddress)future.channel().remoteAddress()));
+			}
+		});
+				
 		if(wait) {
 			try {
 				communicationChannel.sync();
@@ -85,6 +105,7 @@ public class TcpServerConnector implements StatefulConnector {
 		communicationChannel.channel().close();
 		bossGroup.shutdownGracefully();
 		workerGroup.shutdownGracefully();
+		incomingConnectionStateChange(new ConnectionInfo(ConnectionState.DISCONNECTED, getAddress()));
 	}
 
 	@Override
@@ -146,8 +167,21 @@ public class TcpServerConnector implements StatefulConnector {
 
 	@Override
 	public ConnectionState getConnectionState() {
-		// TODO Auto-generated method stub
-		return null;
+		return state;
+	}
+
+	@Override
+	public void incomingConnectionStateChange(final ConnectionInfo info) {
+		state = info.getConnectionState();
+		if(csl != null) {
+			csl.stateChange(info);
+		}
+	}
+
+	@Override
+	public void addConnectionStateListener(final ConnectionStateListener listener) {
+		this.csl = listener;
+		
 	}
 
 }

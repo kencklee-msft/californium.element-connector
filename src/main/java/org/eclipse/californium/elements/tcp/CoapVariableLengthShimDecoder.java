@@ -36,11 +36,11 @@ import java.util.List;
  */
 public class CoapVariableLengthShimDecoder extends ByteToMessageDecoder{
 	
-	private static final int ACTUAL_LENGTH_MASK = 0x17;
-	private static final int UINT_8_BIT_LENGTH_MASK = 0x18;
-	private static final int UINT_16_BIT_LENGTH_MASK = 0x019;
-	private static final int UINT_32_BIT_LENGTH_MASK = 0x1A;
-	private static final int INVALID_LENGTH_MASK = 0xE0;
+	private static final int NO_CODE_MAX_LENGTH = 0x17;
+	private static final int UINT_8_BIT_LENGTH_CODE = 0x18;
+	private static final int UINT_16_BIT_LENGTH_CODE = 0x019;
+	private static final int UINT_32_BIT_LENGTH_CODE = 0x1A;
+	private static final int RESERVED_LENGTH_INDICATOR = 0xE0;
 	
 	private final int MAX_FRAME_SIZE;
 	
@@ -60,22 +60,22 @@ public class CoapVariableLengthShimDecoder extends ByteToMessageDecoder{
 		int lengthFieldSize = 1;
 		final byte sizeIdicator = in.getByte(0);
 		switch (getLengthCode(sizeIdicator)) {
-		case ACTUAL_LENGTH_MASK:
+		case NO_CODE_MAX_LENGTH:
 			size = getMinimalSizeLenght(sizeIdicator);
 			break;
-		case UINT_8_BIT_LENGTH_MASK:
+		case UINT_8_BIT_LENGTH_CODE:
 			size = getExpandedSize(1, in);
 			lengthFieldSize += 1;
 			break;
-		case UINT_16_BIT_LENGTH_MASK:
+		case UINT_16_BIT_LENGTH_CODE:
 			size = getExpandedSize(2, in);
 			lengthFieldSize += 2;
 			break;
-		case UINT_32_BIT_LENGTH_MASK:
+		case UINT_32_BIT_LENGTH_CODE:
 			size = getExpandedSize(4, in);
 			lengthFieldSize += 4;
 			break;
-		case INVALID_LENGTH_MASK:
+		case RESERVED_LENGTH_INDICATOR:
 		default:
 			throw new CorruptedFrameException("Length of the Frame is Invalid");
 		}
@@ -90,6 +90,14 @@ public class CoapVariableLengthShimDecoder extends ByteToMessageDecoder{
 		}
 	}
 
+	/**
+	 * decode the rest of the length
+	 * @param ctx
+	 * @param in
+	 * @param frameSize
+	 * @param lengthFieldAdjust
+	 * @return
+	 */
 	private Object decode(final ChannelHandlerContext ctx, final ByteBuf in, final  int frameSize, final int lengthFieldAdjust) {
 		if(in.readableBytes() < frameSize + lengthFieldAdjust) {
 			//message not fully in yet
@@ -156,15 +164,20 @@ public class CoapVariableLengthShimDecoder extends ByteToMessageDecoder{
 		return sizeIdicator & 0xFF;
 	}
 
+	/**
+	 * get the Length code from the first byte
+	 * @param in
+	 * @return
+	 */
 	private int getLengthCode(final byte in) {
 		
 		//specific size
-		if(in == UINT_8_BIT_LENGTH_MASK) {
-			return UINT_8_BIT_LENGTH_MASK;
-		} else if(in == UINT_16_BIT_LENGTH_MASK) {
-			return UINT_16_BIT_LENGTH_MASK;
-		}else if(in == UINT_32_BIT_LENGTH_MASK) {
-			return UINT_32_BIT_LENGTH_MASK;
+		if(in == UINT_8_BIT_LENGTH_CODE) {
+			return UINT_8_BIT_LENGTH_CODE;
+		} else if(in == UINT_16_BIT_LENGTH_CODE) {
+			return UINT_16_BIT_LENGTH_CODE;
+		}else if(in == UINT_32_BIT_LENGTH_CODE) {
+			return UINT_32_BIT_LENGTH_CODE;
 		}
 		
 		//dynamic minimal size (evalute mask at 5 least sig bit)
@@ -172,15 +185,15 @@ public class CoapVariableLengthShimDecoder extends ByteToMessageDecoder{
 		if((dynSize & (byte)0xFF) == 0x0 ||
 		   (dynSize & (byte)0xFF) == 0x1 ||
 		   (dynSize & (byte)0xFF) == 0x2 ) {
-			return ACTUAL_LENGTH_MASK;
+			return NO_CODE_MAX_LENGTH;
 		}
 		//error: using reserved bits (evaluate the 3 reserved byte)
 		else if(((in >>> 5) & (byte)0xFF) != 0x0) {
-			return INVALID_LENGTH_MASK;
+			return RESERVED_LENGTH_INDICATOR;
 		}
 		//error: invalid length
 		else {
-			return INVALID_LENGTH_MASK;
+			return RESERVED_LENGTH_INDICATOR;
 		}
 	}
 }

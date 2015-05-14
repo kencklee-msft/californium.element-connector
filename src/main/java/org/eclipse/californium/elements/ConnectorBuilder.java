@@ -67,7 +67,7 @@ public abstract class ConnectorBuilder {
 		return this;
 	}
 	
-	public ConnectorBuilder addThreadSafty() {
+	public ConnectorBuilder makeSharable() {
 		this.isThreadSafe = true;
 		return this;
 	}
@@ -173,7 +173,7 @@ public abstract class ConnectorBuilder {
 		}
 		
 		@Override
-		public ConnectorBuilder addThreadSafty() {
+		public ConnectorBuilder makeSharable() {
 			throw new UnsupportedOperationException("Thread safe operation not supported for UDP");
 		}
 		

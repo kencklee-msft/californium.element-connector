@@ -17,9 +17,9 @@ import org.eclipse.californium.elements.RawData;
 import org.eclipse.californium.elements.RawDataChannel;
 import org.eclipse.californium.elements.StatefulConnector;
 import org.eclipse.californium.elements.tcp.ConnectionInfo;
-import org.eclipse.californium.elements.tcp.MessageInboundTransponder;
 import org.eclipse.californium.elements.tcp.ConnectionInfo.ConnectionState;
 import org.eclipse.californium.elements.tcp.ConnectionStateListener;
+import org.eclipse.californium.elements.tcp.MessageInboundTransponder;
 
 public class TcpServerConnector implements StatefulConnector, RemoteConnectionListener {
 	
@@ -57,7 +57,7 @@ public class TcpServerConnector implements StatefulConnector, RemoteConnectionLi
 
 	public TcpServerConnector(final InetSocketAddress address, final ConnectionStateListener csl) {
 		this.address = address;
-		transponder = new MessageInboundTransponder(address.getHostName(), address.getPort());
+		transponder = new MessageInboundTransponder();
 		connMgr = new TcpServerConnectionMgr(this);
 		this.csl = csl;
 	}
@@ -136,7 +136,12 @@ public class TcpServerConnector implements StatefulConnector, RemoteConnectionLi
 
 	@Override
 	public void setRawDataReceiver(final RawDataChannel messageHandler) {
-		transponder.setRawDataChannel(messageHandler);		
+		throw new IllegalArgumentException("Cannot add a RawDataChannel to a server socket, need to be bounded to remote connection");	
+	}
+	
+	@Override
+	public void bindInChannelToRemote(final RawDataChannel channel, final InetSocketAddress remote) {
+		transponder.addRawDataChannel(channel, remote);
 	}
 
 	@Override
@@ -183,5 +188,4 @@ public class TcpServerConnector implements StatefulConnector, RemoteConnectionLi
 		this.csl = listener;
 		
 	}
-
 }

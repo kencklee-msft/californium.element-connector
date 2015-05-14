@@ -14,9 +14,9 @@ import org.eclipse.californium.elements.RawData;
 import org.eclipse.californium.elements.RawDataChannel;
 import org.eclipse.californium.elements.StatefulConnector;
 import org.eclipse.californium.elements.tcp.ConnectionInfo;
-import org.eclipse.californium.elements.tcp.MessageInboundTransponder;
 import org.eclipse.californium.elements.tcp.ConnectionInfo.ConnectionState;
 import org.eclipse.californium.elements.tcp.ConnectionStateListener;
+import org.eclipse.californium.elements.tcp.MessageInboundTransponder;
 
 public class TcpClientConnector implements StatefulConnector {
 	
@@ -40,7 +40,7 @@ public class TcpClientConnector implements StatefulConnector {
 	public TcpClientConnector(final String addr, final int port, final ConnectionStateListener csl) {
 		this.addr = addr;
 		this.port = port;
-		transponder = new MessageInboundTransponder(addr, port);
+		transponder = new MessageInboundTransponder();
 		this.csl = csl;
 	}
 
@@ -114,7 +114,12 @@ public class TcpClientConnector implements StatefulConnector {
 
 	@Override
 	public void setRawDataReceiver(final RawDataChannel messageHandler) {
-		transponder.setRawDataChannel(messageHandler);
+		bindInChannelToRemote(messageHandler, getAddress());
+	}
+	
+	@Override
+	public void bindInChannelToRemote(final RawDataChannel channel, final InetSocketAddress remote) {
+		transponder.addRawDataChannel(channel, remote);
 	}
 
 	@Override
@@ -167,5 +172,4 @@ public class TcpClientConnector implements StatefulConnector {
 	public void addConnectionStateListener(final ConnectionStateListener listener) {
 		csl = listener;
 	}
-
 }

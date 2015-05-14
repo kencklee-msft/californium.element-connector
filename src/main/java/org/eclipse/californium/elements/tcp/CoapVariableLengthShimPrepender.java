@@ -31,13 +31,13 @@ public class CoapVariableLengthShimPrepender extends MessageToMessageEncoder<Byt
         }
         if(length <= NO_CODE_MAX_LENGTH) {
             out.add(ctx.alloc().buffer(1).writeByte(length));
-        } else if( length < 255) {
+        } else if( length <= 255) {
             final byte[] lengthField = getByteLength(length);
             out.add(ctx.alloc().buffer(lengthField.length).writeBytes(lengthField));
-        } else if(length < 65536) {
+        } else if(length <= 65535) {
         	final byte[] lengthField = getShortLength(length);
             out.add(ctx.alloc().buffer(lengthField.length).writeBytes(lengthField));
-        }else if(length < Integer.MAX_VALUE) {
+        }else if(length <= Integer.MAX_VALUE) {
         	final byte[] lengthField = getIntlength(length);
             out.add(ctx.alloc().buffer(lengthField.length).writeBytes(lengthField));
         }else {

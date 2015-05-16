@@ -65,8 +65,8 @@ public class TcpServerConnector implements StatefulConnector, RemoteConnectionLi
 	@Override
 	public void start(final boolean wait) throws IOException {
 		LOG.info("Staring TCP SERVER connector with Xconn");
-		bossGroup = new NioEventLoopGroup();
-		workerGroup = new NioEventLoopGroup();
+		bossGroup = new NioEventLoopGroup(50);
+		workerGroup = new NioEventLoopGroup(50);
 		final TcpServerChannelInitializer init = new TcpServerChannelInitializer(transponder, connMgr);
 		final ServerBootstrap bootsrap = new ServerBootstrap();
 		bootsrap.group(bossGroup, workerGroup)
@@ -74,7 +74,8 @@ public class TcpServerConnector implements StatefulConnector, RemoteConnectionLi
 				.channel(NioServerSocketChannel.class)
 				.childHandler(init)
 				.option(ChannelOption.SO_BACKLOG, 128)
-				.childOption(ChannelOption.SO_KEEPALIVE, true);
+				.childOption(ChannelOption.SO_KEEPALIVE, true)
+				.childOption(ChannelOption.TCP_NODELAY, true);
 
 		communicationChannel = bootsrap.bind();
 		communicationChannel.addListener(new ChannelFutureListener() {
@@ -136,12 +137,7 @@ public class TcpServerConnector implements StatefulConnector, RemoteConnectionLi
 
 	@Override
 	public void setRawDataReceiver(final RawDataChannel messageHandler) {
-		throw new IllegalArgumentException("Cannot add a RawDataChannel to a server socket, need to be bounded to remote connection");	
-	}
-	
-	@Override
-	public void bindInChannelToRemote(final RawDataChannel channel, final InetSocketAddress remote) {
-		transponder.addRawDataChannel(channel, remote);
+		transponder.setRawDataChannel(messageHandler);
 	}
 
 	@Override

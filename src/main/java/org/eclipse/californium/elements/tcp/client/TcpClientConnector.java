@@ -114,12 +114,7 @@ public class TcpClientConnector implements StatefulConnector {
 
 	@Override
 	public void setRawDataReceiver(final RawDataChannel messageHandler) {
-		bindInChannelToRemote(messageHandler, getAddress());
-	}
-	
-	@Override
-	public void bindInChannelToRemote(final RawDataChannel channel, final InetSocketAddress remote) {
-		transponder.addRawDataChannel(channel, remote);
+		transponder.setRawDataChannel(messageHandler);
 	}
 
 	@Override

@@ -7,12 +7,18 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import org.eclipse.californium.elements.tcp.ConnectionInfo;
 import org.eclipse.californium.elements.tcp.ConnectionInfo.ConnectionState;
 
 @Sharable
 public class TcpServerConnectionMgr extends ChannelInboundHandlerAdapter{
+	
+	//use to notify different event  without blocking netty's thread.
+	//should be taken from a configurable pool
+	private final ExecutorService notifyThread = Executors.newCachedThreadPool();
 	
 	/**
 	 * this is not very efficient, but will suffice for POC
@@ -28,7 +34,7 @@ public class TcpServerConnectionMgr extends ChannelInboundHandlerAdapter{
 	public void channelActive(final ChannelHandlerContext ctx) throws Exception {
 		final InetSocketAddress remote = (InetSocketAddress)ctx.channel().remoteAddress();
 		connections.put(remote, ctx.channel());
-		listener.incomingConnectionStateChange(new ConnectionInfo(ConnectionState.NEW_INCOMING_CONNECT, remote));
+		notify(new ConnectionInfo(ConnectionState.NEW_INCOMING_CONNECT, remote));
 		super.channelActive(ctx);
 	}
 	
@@ -40,7 +46,7 @@ public class TcpServerConnectionMgr extends ChannelInboundHandlerAdapter{
 			System.out.println("Channel did not exist");
 		}
 		else {
-			listener.incomingConnectionStateChange(new ConnectionInfo(ConnectionState.NEW_INCOMING_DISCONNECT, remote));
+			notify(new ConnectionInfo(ConnectionState.NEW_INCOMING_DISCONNECT, remote));
 		}
 		super.channelInactive(ctx);
 	}
@@ -48,5 +54,15 @@ public class TcpServerConnectionMgr extends ChannelInboundHandlerAdapter{
 	public Channel getChannel(final InetSocketAddress address) {
 		System.out.println("request for Channel " + address.toString());
 		return connections.get(address);
+	}
+	
+	
+	private void notify(final ConnectionInfo info) {
+		notifyThread.execute(new Runnable() {
+			@Override
+			public void run() {
+				listener.incomingConnectionStateChange(info);
+			}
+		});
 	}
 }

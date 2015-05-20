@@ -37,19 +37,6 @@ public class TcpServerConnector implements StatefulConnector, RemoteConnectionLi
 
 
 	private ConnectionStateListener csl;
-
-
-	public TcpServerConnector() {
-		this(null, null);
-	}
-	
-	public TcpServerConnector(final int port) {
-		this(new InetSocketAddress(port), null);
-	}
-	
-	public TcpServerConnector(final String address, final int port) {
-		this(new InetSocketAddress(address, port), null);
-	}
 	
 	public TcpServerConnector(final String address, final int port, final ConnectionStateListener csl) {
 		this(new InetSocketAddress(address, port), csl);

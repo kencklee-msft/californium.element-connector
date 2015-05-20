@@ -9,12 +9,15 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.logging.Logger;
 
 import org.eclipse.californium.elements.tcp.ConnectionInfo;
 import org.eclipse.californium.elements.tcp.ConnectionInfo.ConnectionState;
 
 @Sharable
-public class TcpServerConnectionMgr extends ChannelInboundHandlerAdapter{
+public class TcpServerConnectionMgr extends ChannelInboundHandlerAdapter{	
+	private static final Logger LOG = Logger.getLogger( TcpServerConnectionMgr.class.getName() );
+
 	
 	//use to notify different event  without blocking netty's thread.
 	//should be taken from a configurable pool
@@ -43,7 +46,7 @@ public class TcpServerConnectionMgr extends ChannelInboundHandlerAdapter{
 		final InetSocketAddress remote = (InetSocketAddress)ctx.channel().remoteAddress();
 		final Channel ch = connections.remove(remote);
 		if(ch == null) {
-			System.out.println("Channel did not exist");
+			LOG.finest("Channel did not exist");
 		}
 		else {
 			notify(new ConnectionInfo(ConnectionState.NEW_INCOMING_DISCONNECT, remote));
@@ -52,7 +55,7 @@ public class TcpServerConnectionMgr extends ChannelInboundHandlerAdapter{
 	}
 	
 	public Channel getChannel(final InetSocketAddress address) {
-		System.out.println("request for Channel " + address.toString());
+		LOG.finest("request for Channel " + address.toString());
 		return connections.get(address);
 	}
 	

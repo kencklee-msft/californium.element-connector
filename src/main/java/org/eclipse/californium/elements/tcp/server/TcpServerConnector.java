@@ -11,6 +11,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.eclipse.californium.elements.RawData;
@@ -24,7 +25,6 @@ import org.eclipse.californium.elements.tcp.MessageInboundTransponder;
 public class TcpServerConnector implements StatefulConnector, RemoteConnectionListener {
 	
 	private static final Logger LOG = Logger.getLogger( TcpServerConnector.class.getName() );
-
 	
 	private final InetSocketAddress address;	
 	private final MessageInboundTransponder transponder;
@@ -78,7 +78,7 @@ public class TcpServerConnector implements StatefulConnector, RemoteConnectionLi
 			try {
 				communicationChannel.sync();
 			} catch (final InterruptedException e) {
-				System.err.println("Waiting for connection was interupted");
+				LOG.log(Level.SEVERE, "Waiting for connection was interupted");
 			}
 		}
 	}
@@ -107,7 +107,7 @@ public class TcpServerConnector implements StatefulConnector, RemoteConnectionLi
 	public void send(final RawData msg) {
 		final Channel ch = connMgr.getChannel(msg.getInetSocketAddress());
 		if(ch != null) {
-			System.out.println("Sending " + msg.getSize() + " byte" + " to " + ch.remoteAddress().toString());
+			LOG.finest("Sending " + msg.getSize() + " byte" + " to " + ch.remoteAddress().toString());
 			
 			ch.writeAndFlush(msg.getBytes()).addListener(new ChannelFutureListener() {
 				
@@ -118,7 +118,7 @@ public class TcpServerConnector implements StatefulConnector, RemoteConnectionLi
 			});
 		}
 		else {
-			System.out.println("No Channel available to message.  Unknown Connection " + msg.getAddress().toString());
+			LOG.finest("No Channel available to message.  Unknown Connection " + msg.getAddress().toString());
 		}
 	}
 
@@ -149,7 +149,7 @@ public class TcpServerConnector implements StatefulConnector, RemoteConnectionLi
 		else {
 			sb.append("Operation Uncompletd");
 		}
-		System.out.println(sb.toString());
+		LOG.finest(sb.toString());
 	}
 
 

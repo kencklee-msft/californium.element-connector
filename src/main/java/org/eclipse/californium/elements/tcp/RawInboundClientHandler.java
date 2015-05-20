@@ -3,12 +3,16 @@ package org.eclipse.californium.elements.tcp;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 
+import java.util.logging.Logger;
+
 
 public class RawInboundClientHandler extends ChannelInboundHandlerAdapter{
-		
+	
+	private static final Logger LOG = Logger.getLogger( RawInboundClientHandler.class.getName() );
+
 	@Override
 	public void channelActive(final ChannelHandlerContext ctx) throws Exception {
-		System.out.println("channel active in raw Inbound Client");
+		LOG.finest("channel active in raw Inbound Client");
 		super.channelActive(ctx);
 	}
 

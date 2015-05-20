@@ -9,12 +9,16 @@ import io.netty.util.internal.StringUtil;
 import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.logging.Logger;
 
 import org.eclipse.californium.elements.RawData;
 import org.eclipse.californium.elements.RawDataChannel;
 
 @Sharable
 public class MessageInboundTransponder extends ChannelInboundHandlerAdapter{
+	
+	private static final Logger LOG = Logger.getLogger( MessageInboundTransponder.class.getName() );
+
 	
 	//use to notify different event  without blocking netty's thread.
 	//should be taken from a configurable pool
@@ -45,7 +49,7 @@ public class MessageInboundTransponder extends ChannelInboundHandlerAdapter{
 			@Override
 			public void run() {
 				final RawData raw = new RawData(message, remote);
-				System.out.println("RAW INBOUND: " + StringUtil.toHexString(message) + " from " + remote.toString());
+				LOG.finest("RAW INBOUND: " + StringUtil.toHexString(message) + " from " + remote.toString());
 				rawDataChannel.receiveData(raw);
 			}
 		});

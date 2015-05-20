@@ -11,18 +11,6 @@ public class ThreadSafeTcpServerConnector extends TcpServerConnector{
 	public final ReentrantLock lock = new ReentrantLock();
 	public boolean isStarted = false;
 	
-	public ThreadSafeTcpServerConnector() {
-		super(null, null);
-	}
-	
-	public ThreadSafeTcpServerConnector(final int port) {
-		super(new InetSocketAddress(port), null);
-	}
-	
-	public ThreadSafeTcpServerConnector(final String address, final int port) {
-		super(new InetSocketAddress(address, port), null);
-	}
-	
 	public ThreadSafeTcpServerConnector(final String address, final int port, final ConnectionStateListener csl) {
 		super(new InetSocketAddress(address, port), csl);
 	}

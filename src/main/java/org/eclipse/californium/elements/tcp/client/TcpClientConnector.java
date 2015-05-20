@@ -8,6 +8,7 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.eclipse.californium.elements.RawData;
@@ -40,6 +41,7 @@ public class TcpClientConnector implements StatefulConnector {
 	public TcpClientConnector(final String addr, final int port, final ConnectionStateListener csl) {
 		this.addr = addr;
 		this.port = port;
+		netAddr = new InetSocketAddress(addr, port);
 		transponder = new MessageInboundTransponder();
 		this.csl = csl;
 	}
@@ -69,7 +71,7 @@ public class TcpClientConnector implements StatefulConnector {
 			try {
 				communicationChannel.sync();
 			} catch (final InterruptedException e) {
-				System.err.println("Waiting for connection was interupted");
+				LOG.log(Level.SEVERE, "Waiting for connection was interupted");
 			}
 		}
 		communicationChannel.addListener(new ChannelActiveListener());
@@ -83,7 +85,7 @@ public class TcpClientConnector implements StatefulConnector {
 				communicationChannel.channel().closeFuture().sync();
 				workerPool.shutdownGracefully().sync();
 			} catch (final InterruptedException e) {
-				System.err.println("error in stop: " + e.getMessage());
+				LOG.log(Level.SEVERE, "error in stop: " + e.getMessage());
 				e.printStackTrace();
 			}
 			finally {
@@ -102,7 +104,7 @@ public class TcpClientConnector implements StatefulConnector {
 
 	@Override
 	public void send(final RawData msg) {
-		System.out.println("Sending " + msg.getSize() + " byte");
+		LOG.finest("Sending " + msg.getSize() + " byte");
 		communicationChannel.channel().writeAndFlush(msg.getBytes()).addListener(new ChannelFutureListener() {
 			
 			@Override
@@ -160,7 +162,7 @@ public class TcpClientConnector implements StatefulConnector {
 		else {
 			sb.append("Operation Uncompletd");
 		}
-		System.out.println(sb.toString());
+		LOG.finest(sb.toString());
 	}
 
 	@Override

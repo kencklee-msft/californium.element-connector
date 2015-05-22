@@ -5,6 +5,7 @@ import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.util.concurrent.Future;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -71,7 +72,7 @@ public class TcpClientConnector implements StatefulConnector {
 			try {
 				communicationChannel.sync();
 			} catch (final InterruptedException e) {
-				LOG.log(Level.SEVERE, "Waiting for connection was interupted");
+				LOG.log(Level.SEVERE, "Waiting for connection was interupted", e);
 			}
 		}
 		communicationChannel.addListener(new ChannelActiveListener());
@@ -82,11 +83,15 @@ public class TcpClientConnector implements StatefulConnector {
 		if(communicationChannel != null) {
 			try {
 				updateConnectionState(new ConnectionInfo(ConnectionState.DISCONNECTING, getAddress()));
-				communicationChannel.channel().closeFuture().sync();
-				workerPool.shutdownGracefully().sync();
+				final ChannelFuture closeFuture = communicationChannel.channel().closeFuture();
+				final Future<?> workerPoolShutdown = workerPool.shutdownGracefully();
+				boolean result = closeFuture.await(1000);
+				LOG.finest("Stopping Communication Channel succes?: " + result);
+				result = workerPoolShutdown.await(1000);
+				LOG.finest("Stopping WorkerPool succes?: " + result);
+
 			} catch (final InterruptedException e) {
-				LOG.log(Level.SEVERE, "error in stop: " + e.getMessage());
-				e.printStackTrace();
+				LOG.log(Level.SEVERE, "error in stop: ", e);
 			}
 			finally {
 				updateConnectionState(new ConnectionInfo(ConnectionState.DISCONNECTING, getAddress()));

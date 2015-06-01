@@ -7,8 +7,7 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.internal.StringUtil;
 
 import java.net.InetSocketAddress;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.Executor;
 import java.util.logging.Logger;
 
 import org.eclipse.californium.elements.RawData;
@@ -22,10 +21,11 @@ public class MessageInboundTransponder extends ChannelInboundHandlerAdapter{
 	
 	//use to notify different event  without blocking netty's thread.
 	//should be taken from a configurable pool
-	private final ExecutorService notifyThread = Executors.newCachedThreadPool();
+	private final  Executor notifyThread;
 	private  RawDataChannel rawDataChannel;
 
-	public MessageInboundTransponder() {
+	public MessageInboundTransponder(final Executor callBackExecutor) {
+		this.notifyThread = callBackExecutor;
 	}
 	
 	public void setRawDataChannel(final RawDataChannel rawDataChannel) {

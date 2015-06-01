@@ -1,78 +1,37 @@
 package org.eclipse.californium.elements;
 
 import java.net.InetSocketAddress;
+import java.util.concurrent.Executor;
 
-import org.eclipse.californium.elements.tcp.ConnectionStateListener;
+import org.eclipse.californium.elements.config.ConnectionConfig;
+import org.eclipse.californium.elements.config.ConnectionConfig.CommunicationRole;
+import org.eclipse.californium.elements.config.TCPConnectionConfig;
+import org.eclipse.californium.elements.config.UDPConnectionConfig;
 import org.eclipse.californium.elements.tcp.client.TcpClientConnector;
 import org.eclipse.californium.elements.tcp.server.TcpServerConnector;
 import org.eclipse.californium.elements.tcp.server.ThreadSafeTcpServerConnector;
 
 public abstract class ConnectorBuilder {
 	
-	protected ConnectionSemantic connectionSematic;
-	protected SecuritySemantic securitySemantic;
-	protected CommunicationRole communicationRole;
-	protected ConnectionStateListener listener;
-	protected boolean isThreadSafe = false;
-	protected String address;
-	protected int port = 0;
-		
-	public enum LayerSemantic {
-		TCP,
-		UDP
-	}
+	protected int nSelectorThread;
+	protected Executor selectorExecutor;
+	protected Executor callBackExecutor;
 	
-	public enum ConnectionSemantic {
-		NIO,
-		OIO,
-		LOCAL
-	}
-	
-	public enum SecuritySemantic {
-		TLS,
-		DTLS
-	}
-	
-	public enum CommunicationRole {
-		NODE,
-		CLIENT,
-		SERVER;
-	}
-		
-	public static ConnectorBuilder createTransportLayerBuilder(final LayerSemantic layerstrat){
-		switch(layerstrat) {
+	public static ConnectorBuilder createTransportLayerBuilder(final ConnectionConfig cfg){
+		switch(cfg.getTransportLayer()) {
 		case TCP:
-			return  new TCPConnectorBuilder();
+			return  new TCPConnectorBuilder((TCPConnectionConfig)cfg);
 		case UDP:
-			return new UDPConnectorBuilder();
+			return new UDPConnectorBuilder((UDPConnectionConfig)cfg);
 		default:
-			throw new UnsupportedOperationException("Not Supported communication layer strategy");
+			throw new UnsupportedOperationException("Not a Supported communication layer semantic");
 		}
 	}
 	
-	public abstract ConnectorBuilder setConnectionSemantics(final ConnectionSemantic connSemantic);
-	public abstract ConnectorBuilder setSecuritySemantic(final SecuritySemantic secSemantic);
-	public abstract ConnectorBuilder setCommunicationRole(CommunicationRole commRole);
-	public abstract ConnectorBuilder setConnectionStateListener(ConnectionStateListener listener);
-	public abstract StatefulConnector buildStatfulConnector();
 	public abstract Connector buildConnector();
+	public abstract StatefulConnector buildStatefulConnector();
 	
-	public ConnectorBuilder setAddress(final String address) {
-		this.address = address;
-		return this;
-	}
-	
-	public ConnectorBuilder setPort(final int port) {
-		this.port = port;
-		return this;
-	}
-	
-	public ConnectorBuilder makeSharable() {
-		this.isThreadSafe = true;
-		return this;
-	}
-	
-	protected InetSocketAddress getSocketObj() {
+	protected InetSocketAddress getSocketObj(final String address, final int port) {
 		if(address == null) {
 			return new InetSocketAddress(port);
 		}
@@ -80,116 +39,53 @@ public abstract class ConnectorBuilder {
 			return new InetSocketAddress(address, port);
 		}
 	}
-	
+		
 	private static class TCPConnectorBuilder extends ConnectorBuilder {
-		private final LayerSemantic layerSemantic = LayerSemantic.TCP;
 		
-		public TCPConnectorBuilder() {}
-		
-		@Override
-		public ConnectorBuilder setConnectionSemantics(final ConnectionSemantic connSemantic) {
-			this.connectionSematic = connSemantic;
-			return this;
-		}
-		
-		@Override
-		public ConnectorBuilder setSecuritySemantic(final SecuritySemantic secSemantic) {
-			if(secSemantic.equals(SecuritySemantic.DTLS)) {
-				throw new UnsupportedOperationException("TCP cannot be secured with DTLS");
-			}
-			
-			this.securitySemantic = secSemantic;
-			return this;
-		}
-		
-		@Override
-		public ConnectorBuilder setCommunicationRole(final CommunicationRole commRole) {
-			if(commRole.equals(CommunicationRole.NODE)) {
-				throw new UnsupportedOperationException("TCP cannot be set as Node");
-			}
-			this.communicationRole = commRole;
-			return this;
-		}
-		
-		@Override
-		public ConnectorBuilder setConnectionStateListener(final ConnectionStateListener listener) {
-			this.listener = listener;
-			return this;
+		private final TCPConnectionConfig cfg;
+
+		public TCPConnectorBuilder(final TCPConnectionConfig cfg) {
+			this.cfg = cfg;
 		}
 				
 		@Override
-		public StatefulConnector buildStatfulConnector() {
-			if(communicationRole.equals(CommunicationRole.CLIENT)) {
-				return new TcpClientConnector(address, port, listener);
+		public StatefulConnector buildStatefulConnector() {
+			if(cfg.getCommunicationRole().equals(CommunicationRole.CLIENT)) {
+				return new TcpClientConnector(cfg);
 				
-			} else if(communicationRole.equals(CommunicationRole.SERVER)) {
-				if(isThreadSafe) {
-					return new ThreadSafeTcpServerConnector(address, port, listener);
+			} else if(cfg.getCommunicationRole().equals(CommunicationRole.SERVER)) {
+				if(cfg.isSharable()) {
+					return new ThreadSafeTcpServerConnector(cfg);
 				} else {
-					return new TcpServerConnector(address, port, listener);
+					return new TcpServerConnector(cfg);
 				}
 			}
 			else {
 				throw new UnsupportedOperationException("No Valide Communication role was specified");
 			}
 		}
-		
+
 		@Override
 		public Connector buildConnector() {
-			return this.buildStatfulConnector();
+			return buildStatefulConnector();
 		}
 	}
 	
 	private static class UDPConnectorBuilder extends ConnectorBuilder {
-		private final LayerSemantic layerSemantic = LayerSemantic.UDP;
-		private final CommunicationRole commRole = CommunicationRole.NODE;
+		private final UDPConnectionConfig cfg;
 		
-		public UDPConnectorBuilder() {}
-		
-		@Override
-		public ConnectorBuilder setConnectionSemantics(final ConnectionSemantic connSemantic) {
-			this.connectionSematic = connSemantic;
-			return this;
-		}
-		
-		@Override
-		public ConnectorBuilder setSecuritySemantic(final SecuritySemantic secSemantic) {
-			if(secSemantic.equals(SecuritySemantic.TLS)) {
-				throw new UnsupportedOperationException("UDP cannot be secured with TLS");
-			}
-			
-			this.securitySemantic = secSemantic;
-			return this;
-		}
-		
-		@Override
-		public ConnectorBuilder setCommunicationRole(final CommunicationRole commRole) {
-			if(commRole.equals(CommunicationRole.NODE)) {
-				this.communicationRole = commRole;
-				return this;
-			}
-			
-			throw new UnsupportedOperationException("UDP cannot be set as " + commRole.toString());			
-		}
-		
-		@Override
-		public ConnectorBuilder makeSharable() {
-			throw new UnsupportedOperationException("Thread safe operation not supported for UDP");
-		}
-		
-		@Override
-		public ConnectorBuilder setConnectionStateListener(final ConnectionStateListener listener) {
-			throw new UnsupportedOperationException("Cannot set a State Listener on a UDP Connection");
-		}
-		
-		@Override
-		public StatefulConnector buildStatfulConnector() {
-			throw new UnsupportedOperationException("Cannot Builder Statful Connector Using UDP");
+		public UDPConnectorBuilder(final UDPConnectionConfig cfg) {
+			this.cfg = cfg;
 		}
 		
 		@Override
 		public Connector buildConnector() {
-			return new UDPConnector(getSocketObj());
+			return new UDPConnector(getSocketObj(cfg.getRemoteAddress(), cfg.getRemotePort()));
+		}
+
+		@Override
+		public StatefulConnector buildStatefulConnector() {
+			throw new UnsupportedOperationException("Cannot build a connector that track state for UDP");
 		}
 	}
 	

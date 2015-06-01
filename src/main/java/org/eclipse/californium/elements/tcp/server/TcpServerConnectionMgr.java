@@ -7,8 +7,7 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.Executor;
 import java.util.logging.Logger;
 
 import org.eclipse.californium.elements.tcp.ConnectionInfo;
@@ -21,7 +20,7 @@ public class TcpServerConnectionMgr extends ChannelInboundHandlerAdapter{
 	
 	//use to notify different event  without blocking netty's thread.
 	//should be taken from a configurable pool
-	private final ExecutorService notifyThread = Executors.newCachedThreadPool();
+	private final Executor notifyThread;
 	
 	/**
 	 * this is not very efficient, but will suffice for POC
@@ -29,8 +28,9 @@ public class TcpServerConnectionMgr extends ChannelInboundHandlerAdapter{
 	private final ConcurrentHashMap<InetSocketAddress, Channel> connections = new ConcurrentHashMap<InetSocketAddress, Channel>();
 	private final RemoteConnectionListener listener;
 	
-	public TcpServerConnectionMgr(final RemoteConnectionListener listener) {
+	public TcpServerConnectionMgr(final RemoteConnectionListener listener, final Executor notifyThread) {
 		this.listener = listener;
+		this.notifyThread = notifyThread;
 	}
 
 	@Override

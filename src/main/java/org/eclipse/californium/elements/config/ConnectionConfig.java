@@ -23,27 +23,11 @@ public abstract class ConnectionConfig {
 		CLIENT,
 		SERVER;
 	}
-
-	private String remoteAddress;
-	private int remotePort;
 	
 	public abstract LayerSemantic getTransportLayer();
 	public abstract CommunicationRole getCommunicationRole();
 	
 	
-	public String getRemoteAddress() {
-		return remoteAddress;
-	}
-	
-	public void setRemoteAddress(final String remoteAddress) {
-		this.remoteAddress = remoteAddress;
-	}
-	
-	public int getRemotePort() {
-		return remotePort;
-	}
-	
-	public void setRemotePort(final int remotePort) {
-		this.remotePort = remotePort;
-	}
+	public abstract String getRemoteAddress();
+	public abstract int getRemotePort();
 }

@@ -6,20 +6,16 @@ import io.netty.handler.ssl.SslContext;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 import org.eclipse.californium.elements.tcp.ConnectionStateListener;
 
-public class TCPConnectionConfig extends ConnectionConfig{
+public abstract class TCPConnectionConfig extends ConnectionConfig{
 
 	private final CommunicationRole role;
-	private boolean isSharable;
-	private ConnectionSemantic connSem;
-	private ConnectionStateListener listener;
 	private final Map<ChannelOption<?>, Object> options = new HashMap<ChannelOption<?>, Object>();
-	private Executor callbackExecutor;
-	private boolean isSecure;
-	private SslContext sslContext;
-	private SSLCLientCertReq reqCertificate;
+	private boolean isSecure = false;
+	private SslContext sslContext;	private SSLCLientCertReq reqCertificate;
 	private String[] tlsVersion;
 	
 	public enum SSLCLientCertReq {
@@ -33,52 +29,79 @@ public class TCPConnectionConfig extends ConnectionConfig{
 	}
 
 	@Override
-	public LayerSemantic getTransportLayer() {
+	public final LayerSemantic getTransportLayer() {
 		return LayerSemantic.TCP;
 	}
 	
 	@Override
-	public CommunicationRole getCommunicationRole() {
+	public final CommunicationRole getCommunicationRole() {
 		return role;
 	}
 	
-	public void setConnectionSemantics(final ConnectionSemantic connSem) {
-		this.connSem = connSem;
+	/**
+	 * only NIO is implemented for now
+	 * @return
+	 */
+	public final ConnectionSemantic getConnectionSemantic() {
+		return ConnectionSemantic.NIO;
 	}
 	
-	public ConnectionSemantic getConnectionSemantic() {
-		return connSem;
-	}
-	
-	public void setSharable(final boolean isSharable) {
-		this.isSharable = isSharable;
-	}
-	
+	/**
+	 * set whether the connection is shared amongst all endpoint
+	 * @return
+	 */
 	public boolean isSharable(){
-		return isSharable;
+		//default implementation
+		return getCommunicationRole().equals(CommunicationRole.SERVER);
 	}
 	
-	public void setConnectionStateListener(final ConnectionStateListener listener) {
-		this.listener = listener;
-	}
-	
+	/**
+	 * if no ConnectionState Listener 
+	 * is supplied, event will not be sent up
+	 * @return
+	 */
 	public ConnectionStateListener getListener() {
-		return listener;
+		//default implementation
+		return null;
 	}
 	
+	/**
+	 * add any options the Channel
+	 * @param option
+	 * @param value
+	 */
 	public <T> void addChannelOption(final ChannelOption<T> option, final T value) {
+		//default implementation
 		options.put(option, value);
 	}
 	
-	public void setCallBackExecutor(final Executor executor) {
-		this.callbackExecutor = executor;
+	/**
+	 * return the map of option
+	 * @return
+	 */
+	public final Map<ChannelOption<?>, Object> getChannelOptions() {
+		return options;
 	}
 	
+	/**
+	 * get the Executor containing the Threads used to send callback and notify back 
+	 * to Californium
+	 * @return
+	 */
 	public Executor getCallBackExecutor() {
-		return callbackExecutor;
+		//default implementation
+		return Executors.newCachedThreadPool();
 	}
 	
-	public void setServerSSL(final SslContext context, final SSLCLientCertReq reqCertificate, final String... tlsVersions) {
+	/**
+	 * set you SSL details for a socket server
+	 * pass in the SSL context, the supported TLS version and if there is a need or obligation 
+	 * for the client to have a certificate
+	 * @param context
+	 * @param reqCertificate
+	 * @param tlsVersions
+	 */
+	public final void setServerSSL(final SslContext context, final SSLCLientCertReq reqCertificate, final String... tlsVersions) {
 		if(role.equals(CommunicationRole.SERVER)) {
 			this.isSecure = true;
 			this.sslContext = context;
@@ -90,6 +113,10 @@ public class TCPConnectionConfig extends ConnectionConfig{
 		}
 	}
 	
+	/**
+	 * set the SSL context for the TCP Client
+	 * @param context
+	 */
 	public void setClientSSL(final SslContext context) {
 		if(role.equals(CommunicationRole.SERVER)) {
 			this.isSecure = true;
@@ -100,19 +127,19 @@ public class TCPConnectionConfig extends ConnectionConfig{
 		}
 	}
 	
-	public boolean isSecured() {
+	public final boolean isSecured() {
 		return isSecure;
 	}
 	
-	public SSLCLientCertReq getSslClientCertificateRequestLevel() {
+	public final SSLCLientCertReq getSslClientCertificateRequestLevel() {
 		return reqCertificate;
 	}
 	
-	public String[] getTLSVersions() {
+	public final String[] getTLSVersions() {
 		return tlsVersion;
 	}
 	
-	public SslContext getSslContext() {
+	public final SslContext getSslContext() {
 		return sslContext;
 	}
 

@@ -9,12 +9,14 @@ import io.netty.util.concurrent.Future;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.eclipse.californium.elements.RawData;
 import org.eclipse.californium.elements.RawDataChannel;
 import org.eclipse.californium.elements.StatefulConnector;
+import org.eclipse.californium.elements.config.TCPConnectionConfig;
 import org.eclipse.californium.elements.tcp.ConnectionInfo;
 import org.eclipse.californium.elements.tcp.ConnectionInfo.ConnectionState;
 import org.eclipse.californium.elements.tcp.ConnectionStateListener;
@@ -25,27 +27,25 @@ public class TcpClientConnector implements StatefulConnector {
 	private static final Logger LOG = Logger.getLogger( TcpClientConnector.class.getName() );
 	
 	private final MessageInboundTransponder transponder;
-	private final String addr;
-	private final int port;
-	
+	private final TCPConnectionConfig cfg;
+
 	private InetSocketAddress netAddr;
 	private NioEventLoopGroup workerPool;
 	private ChannelFuture communicationChannel;
 	private ConnectionState state = ConnectionState.DISCONNECTED;
 
 	private ConnectionStateListener csl;
+
 	
-	public TcpClientConnector(final String addr, final int port) {
-		this(addr, port, null);
+	public TcpClientConnector(final TCPConnectionConfig cfg) {
+		this.cfg = cfg;
+		transponder = new MessageInboundTransponder(cfg.getCallBackExecutor() != null ? 
+														cfg.getCallBackExecutor() : 
+														Executors.newCachedThreadPool());
+		this.csl = cfg.getListener();
 	}
 	
-	public TcpClientConnector(final String addr, final int port, final ConnectionStateListener csl) {
-		this.addr = addr;
-		this.port = port;
-		netAddr = new InetSocketAddress(addr, port);
-		transponder = new MessageInboundTransponder();
-		this.csl = csl;
-	}
+	
 
 	@Override
 	public void start() throws IOException {
@@ -55,10 +55,13 @@ public class TcpClientConnector implements StatefulConnector {
 	@Override
 	public void start(final boolean wait) throws IOException {
 		LOG.info("Staring TCP CLIENT connector");
-		netAddr = new InetSocketAddress(addr, port);
+		netAddr = new InetSocketAddress(cfg.getRemoteAddress(), cfg.getRemotePort());
 		workerPool = new NioEventLoopGroup();
 		
 		final TcpClientChannelInitializer init = new TcpClientChannelInitializer(transponder);
+		if(cfg.isSecured()) {
+			init.addTLS(cfg.getSslContext());
+		}
 		
 		final Bootstrap bootstrap = new Bootstrap();
 		bootstrap.group(workerPool)
@@ -125,8 +128,15 @@ public class TcpClientConnector implements StatefulConnector {
 	}
 
 	@Override
+	/*
+	 * returns the address resolved on start, if the netAddr is null,
+	 * the server is not stared, resolve the address and send the new object
+	 * the netAddr will stil be resolved once it is ask to start
+	 * (non-Javadoc)
+	 * @see org.eclipse.californium.elements.Connector#getAddress()
+	 */
 	public InetSocketAddress getAddress() {
-		return netAddr;
+		return netAddr == null ? new InetSocketAddress(cfg.getRemoteAddress(), cfg.getRemotePort()) : netAddr;
 	}
 
 	@Override

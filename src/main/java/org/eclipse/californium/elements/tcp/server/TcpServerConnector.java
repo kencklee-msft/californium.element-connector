@@ -11,12 +11,14 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.eclipse.californium.elements.RawData;
 import org.eclipse.californium.elements.RawDataChannel;
 import org.eclipse.californium.elements.StatefulConnector;
+import org.eclipse.californium.elements.config.TCPConnectionConfig;
 import org.eclipse.californium.elements.tcp.ConnectionInfo;
 import org.eclipse.californium.elements.tcp.ConnectionInfo.ConnectionState;
 import org.eclipse.californium.elements.tcp.ConnectionStateListener;
@@ -29,6 +31,7 @@ public class TcpServerConnector implements StatefulConnector, RemoteConnectionLi
 	private final InetSocketAddress address;	
 	private final MessageInboundTransponder transponder;
 	private final TcpServerConnectionMgr connMgr;
+	private final TCPConnectionConfig cfg;
 
 	private EventLoopGroup bossGroup;
 	private EventLoopGroup workerGroup;
@@ -37,16 +40,17 @@ public class TcpServerConnector implements StatefulConnector, RemoteConnectionLi
 
 
 	private ConnectionStateListener csl;
-	
-	public TcpServerConnector(final String address, final int port, final ConnectionStateListener csl) {
-		this(new InetSocketAddress(address, port), csl);
-	}
 
-	public TcpServerConnector(final InetSocketAddress address, final ConnectionStateListener csl) {
-		this.address = address;
-		transponder = new MessageInboundTransponder();
-		connMgr = new TcpServerConnectionMgr(this);
-		this.csl = csl;
+	public TcpServerConnector(final TCPConnectionConfig cfg) {
+		this.cfg = cfg;
+		address = new InetSocketAddress(cfg.getRemoteAddress(), cfg.getRemotePort());
+		transponder = new MessageInboundTransponder(cfg.getCallBackExecutor() != null ? 
+														cfg.getCallBackExecutor() : 
+														Executors.newCachedThreadPool());
+		connMgr = new TcpServerConnectionMgr(this, cfg.getCallBackExecutor() != null ? 
+													cfg.getCallBackExecutor() : 
+													Executors.newCachedThreadPool());
+		this.csl = cfg.getListener();
 	}
 	
 	@Override
@@ -55,6 +59,9 @@ public class TcpServerConnector implements StatefulConnector, RemoteConnectionLi
 		bossGroup = new NioEventLoopGroup(50);
 		workerGroup = new NioEventLoopGroup(50);
 		final TcpServerChannelInitializer init = new TcpServerChannelInitializer(transponder, connMgr);
+		if(cfg.isSecured()) {
+			init.addTLS(cfg.getSslContext(), cfg.getSslClientCertificateRequestLevel(), cfg.getTLSVersions());
+		}
 		final ServerBootstrap bootsrap = new ServerBootstrap();
 		bootsrap.group(bossGroup, workerGroup)
 				.localAddress(address.getPort())

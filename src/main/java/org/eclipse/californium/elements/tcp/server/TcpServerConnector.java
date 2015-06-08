@@ -60,7 +60,7 @@ public class TcpServerConnector implements StatefulConnector, RemoteConnectionLi
 		workerGroup = new NioEventLoopGroup(50);
 		final TcpServerChannelInitializer init = new TcpServerChannelInitializer(transponder, connMgr);
 		if(cfg.isSecured()) {
-			init.addTLS(cfg.getSslContext(), cfg.getSslClientCertificateRequestLevel(), cfg.getTLSVersions());
+			init.addTLS(cfg.getSSlContext(), cfg.getSslClientCertificateRequestLevel(), cfg.getTLSVersions());
 		}
 		final ServerBootstrap bootsrap = new ServerBootstrap();
 		bootsrap.group(bossGroup, workerGroup)

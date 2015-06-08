@@ -1,12 +1,13 @@
 package org.eclipse.californium.elements.config;
 
 import io.netty.channel.ChannelOption;
-import io.netty.handler.ssl.SslContext;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+
+import javax.net.ssl.SSLContext;
 
 import org.eclipse.californium.elements.tcp.ConnectionStateListener;
 
@@ -15,7 +16,8 @@ public abstract class TCPConnectionConfig extends ConnectionConfig{
 	private final CommunicationRole role;
 	private final Map<ChannelOption<?>, Object> options = new HashMap<ChannelOption<?>, Object>();
 	private boolean isSecure = false;
-	private SslContext sslContext;	private SSLCLientCertReq reqCertificate;
+	private SSLContext sslContext;	
+	private SSLCLientCertReq reqCertificate;
 	private String[] tlsVersion;
 	
 	public enum SSLCLientCertReq {
@@ -101,7 +103,7 @@ public abstract class TCPConnectionConfig extends ConnectionConfig{
 	 * @param reqCertificate
 	 * @param tlsVersions
 	 */
-	public final void setServerSSL(final SslContext context, final SSLCLientCertReq reqCertificate, final String... tlsVersions) {
+	public final void setServerSSL(final SSLContext context, final SSLCLientCertReq reqCertificate, final String... tlsVersions) {
 		if(role.equals(CommunicationRole.SERVER)) {
 			this.isSecure = true;
 			this.sslContext = context;
@@ -117,8 +119,8 @@ public abstract class TCPConnectionConfig extends ConnectionConfig{
 	 * set the SSL context for the TCP Client
 	 * @param context
 	 */
-	public void setClientSSL(final SslContext context) {
-		if(role.equals(CommunicationRole.SERVER)) {
+	public void setClientSSL(final SSLContext context) {
+		if(role.equals(CommunicationRole.CLIENT)) {
 			this.isSecure = true;
 			this.sslContext = context;
 		}
@@ -139,7 +141,7 @@ public abstract class TCPConnectionConfig extends ConnectionConfig{
 		return tlsVersion;
 	}
 	
-	public final SslContext getSslContext() {
+	public final SSLContext getSSlContext() {
 		return sslContext;
 	}
 

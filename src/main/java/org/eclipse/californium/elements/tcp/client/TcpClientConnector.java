@@ -60,7 +60,7 @@ public class TcpClientConnector implements StatefulConnector {
 		
 		final TcpClientChannelInitializer init = new TcpClientChannelInitializer(transponder);
 		if(cfg.isSecured()) {
-			init.addTLS(cfg.getSslContext());
+			init.addTLS(cfg.getSSlContext());
 		}
 		
 		final Bootstrap bootstrap = new Bootstrap();

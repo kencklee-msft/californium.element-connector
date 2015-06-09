@@ -22,27 +22,26 @@ import org.eclipse.californium.elements.tcp.RawOutboundClientHandler;
 
 public class TcpClientChannelInitializer extends ChannelInitializer<SocketChannel>{
 	private static final Logger LOG = Logger.getLogger( TcpClientChannelInitializer.class.getName() );
+	private static final String SSL_HANDLER_ID = "ssl";
 
 	private final MessageInboundTransponder transponder;
 
-	private SslHandler sslHandler;
+	private SSLContext sslContext;
 	
 	public TcpClientChannelInitializer(final MessageInboundTransponder transponder) {
 		this.transponder = transponder;
 	}
 	
 	public void addTLS(final SSLContext sslContext) {
-		if(sslContext != null) {
-			final SSLEngine engine = sslContext.createSSLEngine();
-			engine.setUseClientMode(true);
-			this.sslHandler = new SslHandler(engine);
-		}
+		this.sslContext = sslContext;
 	}
 
 	@Override
 	protected void initChannel(final SocketChannel ch) throws Exception {
-		if(sslHandler != null) {
-			ch.pipeline().addFirst("ssl", sslHandler);//init the TLS since we are the client
+		if(sslContext != null) {
+			final SSLEngine engine = sslContext.createSSLEngine();
+			engine.setUseClientMode(true);
+			ch.pipeline().addFirst(SSL_HANDLER_ID, new SslHandler(engine));//init the TLS since we are the client
 		}
 		ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4), new LengthFieldPrepender(4));
 		ch.pipeline().addLast(new RawInboundClientHandler(), new RawOutboundClientHandler());
@@ -51,7 +50,7 @@ public class TcpClientChannelInitializer extends ChannelInitializer<SocketChanne
 	
 	@Override
 	public void channelActive(final ChannelHandlerContext ctx) throws Exception {
-		asychNotifyOnCompleteHandshake(sslHandler.handshakeFuture());
+		asychNotifyOnCompleteHandshake(((SslHandler)(ctx.pipeline().get(SSL_HANDLER_ID))).handshakeFuture());
 		super.channelActive(ctx);
 	}
 	

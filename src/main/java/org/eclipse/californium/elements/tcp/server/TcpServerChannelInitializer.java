@@ -23,11 +23,14 @@ import org.eclipse.californium.elements.tcp.RawOutboundClientHandler;
 
 public class TcpServerChannelInitializer extends ChannelInitializer<SocketChannel> {
 	private static final Logger LOG = Logger.getLogger( TcpServerChannelInitializer.class.getName() );
+	private static final String SSL_HANDLER_ID = "ssl";
 
 	private final MessageInboundTransponder transponder;
 	private final TcpServerConnectionMgr connMgr;
 
-	private SslHandler sslHandler;
+	private SSLContext sslContext;
+	private SSLCLientCertReq req;
+	private String[] supportedTLSVerions;
 
 	public TcpServerChannelInitializer(
 			final MessageInboundTransponder transponder, final TcpServerConnectionMgr connMgr) {
@@ -36,6 +39,13 @@ public class TcpServerChannelInitializer extends ChannelInitializer<SocketChanne
 	}
 	
 	public void addTLS(final SSLContext sslContext, final SSLCLientCertReq req, final String[] supportedTLSVerions) {
+		this.sslContext = sslContext;
+		this.req = req;
+		this.supportedTLSVerions = supportedTLSVerions;
+	}
+
+	@Override
+	protected void initChannel(final SocketChannel ch) throws Exception {
 		if(sslContext != null) {
 			final SSLEngine engine = sslContext.createSSLEngine();
 			switch(req) {
@@ -62,16 +72,8 @@ public class TcpServerChannelInitializer extends ChannelInitializer<SocketChanne
 			if(supportedTLSVerions != null && supportedTLSVerions.length > 0) {
 				engine.setEnabledProtocols(supportedTLSVerions);
 			}
-			this.sslHandler =  new SslHandler(engine);
-			sslHandler.setHandshakeTimeoutMillis(5000);
-			sslHandler.setCloseNotifyTimeoutMillis(2000);
-		}
-	}
-
-	@Override
-	protected void initChannel(final SocketChannel ch) throws Exception {
-		if(sslHandler != null) {
-			ch.pipeline().addFirst("ssl", sslHandler);//init the TLS since we are the client
+			engine.setEnableSessionCreation(true);
+			ch.pipeline().addFirst(SSL_HANDLER_ID, new SslHandler(engine));//init the TLS since we are the client
 		}
 		ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4), new LengthFieldPrepender(4));
 		ch.pipeline().addLast(new RawInboundClientHandler(), new RawOutboundClientHandler());
@@ -81,8 +83,13 @@ public class TcpServerChannelInitializer extends ChannelInitializer<SocketChanne
 	
 	@Override
 	public void channelActive(final ChannelHandlerContext ctx) throws Exception {
-		asychNotifyOnCompleteHandshake(sslHandler.handshakeFuture());
+		asychNotifyOnCompleteHandshake(((SslHandler)(ctx.pipeline().get(SSL_HANDLER_ID))).handshakeFuture());
 		super.channelActive(ctx);
+	}
+	
+	@Override
+	public void channelInactive(final ChannelHandlerContext ctx) throws Exception {
+		super.channelInactive(ctx);
 	}
 	
 	private void asychNotifyOnCompleteHandshake(final Future<Channel> handShakePromise) {

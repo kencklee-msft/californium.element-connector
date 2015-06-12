@@ -21,8 +21,9 @@ import org.eclipse.californium.elements.tcp.ConnectionInfo;
 import org.eclipse.californium.elements.tcp.ConnectionInfo.ConnectionState;
 import org.eclipse.californium.elements.tcp.ConnectionStateListener;
 import org.eclipse.californium.elements.tcp.MessageInboundTransponder;
+import org.eclipse.californium.elements.tcp.server.RemoteConnectionListener;
 
-public class TcpClientConnector implements StatefulConnector {
+public class TcpClientConnector implements StatefulConnector, RemoteConnectionListener {
 	
 	private static final Logger LOG = Logger.getLogger( TcpClientConnector.class.getName() );
 	
@@ -58,7 +59,7 @@ public class TcpClientConnector implements StatefulConnector {
 		netAddr = new InetSocketAddress(cfg.getRemoteAddress(), cfg.getRemotePort());
 		workerPool = new NioEventLoopGroup();
 		
-		final TcpClientChannelInitializer init = new TcpClientChannelInitializer(transponder);
+		final TcpClientChannelInitializer init = new TcpClientChannelInitializer(transponder, this);
 		if(cfg.isSecured()) {
 			init.addTLS(cfg.getSSlContext());
 		}
@@ -69,7 +70,7 @@ public class TcpClientConnector implements StatefulConnector {
 				 .channel(NioSocketChannel.class)
 				 .handler(init);
 			
-		updateConnectionState(new ConnectionInfo(ConnectionState.CONNECTING, netAddr));
+		incomingConnectionStateChange(new ConnectionInfo(ConnectionState.CONNECTING, netAddr));
 		communicationChannel = bootstrap.connect();
 		if(wait) {
 			try {
@@ -85,7 +86,7 @@ public class TcpClientConnector implements StatefulConnector {
 	public void stop() {
 		if(communicationChannel != null) {
 			try {
-				updateConnectionState(new ConnectionInfo(ConnectionState.DISCONNECTING, getAddress()));
+				incomingConnectionStateChange(new ConnectionInfo(ConnectionState.DISCONNECTING, getAddress()));
 				final ChannelFuture closeFuture = communicationChannel.channel().closeFuture();
 				final Future<?> workerPoolShutdown = workerPool.shutdownGracefully();
 				boolean result = closeFuture.await(1000);
@@ -97,7 +98,7 @@ public class TcpClientConnector implements StatefulConnector {
 				LOG.log(Level.SEVERE, "error in stop: ", e);
 			}
 			finally {
-				updateConnectionState(new ConnectionInfo(ConnectionState.DISCONNECTING, getAddress()));
+				incomingConnectionStateChange(new ConnectionInfo(ConnectionState.DISCONNECTING, getAddress()));
 			}
 		}
 		netAddr = null;
@@ -144,19 +145,21 @@ public class TcpClientConnector implements StatefulConnector {
 		return state;
 	}
 	
-	private void updateConnectionState(final ConnectionInfo connInfo) {
-		state = connInfo.getConnectionState();
-		if(csl != null) {
-			csl.stateChange(connInfo);
-		}
-	}
 	
 	private class ChannelActiveListener implements ChannelFutureListener {
 
 		@Override
 		public void operationComplete(final ChannelFuture future) throws Exception {
 			printOperationState(future);
-			updateConnectionState(new ConnectionInfo(ConnectionState.CONNECTED, getAddress()));
+			incomingConnectionStateChange(new ConnectionInfo(ConnectionState.CONNECTED, getAddress()));
+		}
+	}
+	
+	@Override
+	public void incomingConnectionStateChange(final ConnectionInfo info) {
+		state = info.getConnectionState();
+		if(csl != null) {
+			csl.stateChange(info);
 		}
 	}
 	
@@ -184,4 +187,8 @@ public class TcpClientConnector implements StatefulConnector {
 	public void addConnectionStateListener(final ConnectionStateListener listener) {
 		csl = listener;
 	}
+
+
+
+
 }

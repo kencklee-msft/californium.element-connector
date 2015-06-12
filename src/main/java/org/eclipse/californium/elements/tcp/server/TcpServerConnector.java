@@ -58,7 +58,7 @@ public class TcpServerConnector implements StatefulConnector, RemoteConnectionLi
 		LOG.info("Staring TCP SERVER connector with Xconn");
 		bossGroup = new NioEventLoopGroup(50);
 		workerGroup = new NioEventLoopGroup(50);
-		final TcpServerChannelInitializer init = new TcpServerChannelInitializer(transponder, connMgr);
+		final TcpServerChannelInitializer init = new TcpServerChannelInitializer(transponder, connMgr, this);
 		if(cfg.isSecured()) {
 			init.addTLS(cfg.getSSlContext(), cfg.getSslClientCertificateRequestLevel(), cfg.getTLSVersions());
 		}

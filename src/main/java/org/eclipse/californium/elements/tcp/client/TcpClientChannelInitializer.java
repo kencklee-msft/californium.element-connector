@@ -1,7 +1,6 @@
 package org.eclipse.californium.elements.tcp.client;
 
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
@@ -9,6 +8,7 @@ import io.netty.handler.codec.LengthFieldPrepender;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.util.concurrent.Future;
 
+import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -16,9 +16,12 @@ import java.util.logging.Logger;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 
+import org.eclipse.californium.elements.tcp.ConnectionInfo;
+import org.eclipse.californium.elements.tcp.ConnectionInfo.ConnectionState;
 import org.eclipse.californium.elements.tcp.MessageInboundTransponder;
 import org.eclipse.californium.elements.tcp.RawInboundClientHandler;
 import org.eclipse.californium.elements.tcp.RawOutboundClientHandler;
+import org.eclipse.californium.elements.tcp.server.RemoteConnectionListener;
 
 public class TcpClientChannelInitializer extends ChannelInitializer<SocketChannel>{
 	private static final Logger LOG = Logger.getLogger( TcpClientChannelInitializer.class.getName() );
@@ -27,9 +30,11 @@ public class TcpClientChannelInitializer extends ChannelInitializer<SocketChanne
 	private final MessageInboundTransponder transponder;
 
 	private SSLContext sslContext;
+	private final RemoteConnectionListener remoteConnectionListner;
 	
-	public TcpClientChannelInitializer(final MessageInboundTransponder transponder) {
+	public TcpClientChannelInitializer(final MessageInboundTransponder transponder, final RemoteConnectionListener listener) {
 		this.transponder = transponder;
+		this.remoteConnectionListner = listener;
 	}
 	
 	public void addTLS(final SSLContext sslContext) {
@@ -41,17 +46,14 @@ public class TcpClientChannelInitializer extends ChannelInitializer<SocketChanne
 		if(sslContext != null) {
 			final SSLEngine engine = sslContext.createSSLEngine();
 			engine.setUseClientMode(true);
-			ch.pipeline().addFirst(SSL_HANDLER_ID, new SslHandler(engine));//init the TLS since we are the client
+			final SslHandler sslHandler = new SslHandler(engine);
+			ch.pipeline().addFirst(SSL_HANDLER_ID, sslHandler);//init the TLS since we are the client
+			remoteConnectionListner.incomingConnectionStateChange(new ConnectionInfo(ConnectionState.TLS_HANDSHAKE_STARTED, ch.remoteAddress()));
+			asychNotifyOnCompleteHandshake(sslHandler.handshakeFuture());
 		}
 		ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4), new LengthFieldPrepender(4));
 		ch.pipeline().addLast(new RawInboundClientHandler(), new RawOutboundClientHandler());
 		ch.pipeline().addLast(transponder);
-	}
-	
-	@Override
-	public void channelActive(final ChannelHandlerContext ctx) throws Exception {
-		asychNotifyOnCompleteHandshake(((SslHandler)(ctx.pipeline().get(SSL_HANDLER_ID))).handshakeFuture());
-		super.channelActive(ctx);
 	}
 	
 	private void asychNotifyOnCompleteHandshake(final Future<Channel> handShakePromise) {
@@ -61,6 +63,7 @@ public class TcpClientChannelInitializer extends ChannelInitializer<SocketChanne
 			public void run() {
 				try {
 					final Channel c = handShakePromise.get();
+					remoteConnectionListner.incomingConnectionStateChange(new ConnectionInfo(ConnectionState.CONNECTED_SECURE, (InetSocketAddress)c.remoteAddress()));
 					LOG.info("TLS Handshake was completed ");
 				} catch (final InterruptedException e) {
 					LOG.log(Level.SEVERE, "Could not wait for TLS Handshake to be completed, waiting thread was interupted ", e);

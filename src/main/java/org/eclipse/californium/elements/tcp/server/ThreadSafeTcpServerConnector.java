@@ -11,7 +11,6 @@ public class ThreadSafeTcpServerConnector extends TcpServerConnector{
 	
 	public ThreadSafeTcpServerConnector(final TCPConnectionConfig cfg) {
 		super(cfg);
-		// TODO Auto-generated constructor stub
 	}
 	
 	@Override

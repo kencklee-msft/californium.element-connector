@@ -2,10 +2,14 @@ package org.eclipse.californium.elements.tcp.server;
 
 import java.io.IOException;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.eclipse.californium.elements.config.TCPConnectionConfig;
 
 public class ThreadSafeTcpServerConnector extends TcpServerConnector{
+	private static final Logger LOG = Logger.getLogger( ThreadSafeTcpServerConnector.class.getName() );
+
 	public final ReentrantLock lock = new ReentrantLock();
 	public boolean isStarted = false;
 
@@ -22,7 +26,7 @@ public class ThreadSafeTcpServerConnector extends TcpServerConnector{
 				isStarted = true;
 			}
 			else {
-				System.out.println("Connector already started");
+				LOG.log(Level.WARNING, "Connector already started");
 			}
 		}
 		finally {
@@ -39,7 +43,7 @@ public class ThreadSafeTcpServerConnector extends TcpServerConnector{
 				isStarted = false;
 			}
 			else {
-				System.out.println("Connector already stoped");
+				LOG.log(Level.WARNING, "Connector already stoped");
 			}
 		}
 		finally {

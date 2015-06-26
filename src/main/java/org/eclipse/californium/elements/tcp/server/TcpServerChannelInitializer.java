@@ -67,13 +67,6 @@ public class TcpServerChannelInitializer extends ChannelInitializer<SocketChanne
 				throw new IllegalArgumentException("Impossible Client Certificate request strategy");
 			}
 			engine.setUseClientMode(false);
-			System.out.println("printing cypher");
-			for(final String c : engine.getEnabledCipherSuites()) {
-				System.out.println(c);
-			}
-			for(final String p : engine.getSupportedProtocols()) {
-				System.out.println(p);
-			}
 			if(supportedTLSVerions != null && supportedTLSVerions.length > 0) {
 				engine.setEnabledProtocols(supportedTLSVerions);
 			}

@@ -15,10 +15,10 @@ import org.eclipse.californium.elements.RawDataChannel;
 
 @Sharable
 public class MessageInboundTransponder extends ChannelInboundHandlerAdapter{
-	
+
 	private static final Logger LOG = Logger.getLogger( MessageInboundTransponder.class.getName() );
 
-	
+
 	//use to notify different event  without blocking netty's thread.
 	//should be taken from a configurable pool
 	private final  Executor notifyThread;
@@ -27,11 +27,11 @@ public class MessageInboundTransponder extends ChannelInboundHandlerAdapter{
 	public MessageInboundTransponder(final Executor callBackExecutor) {
 		this.notifyThread = callBackExecutor;
 	}
-	
+
 	public void setRawDataChannel(final RawDataChannel rawDataChannel) {
 		this.rawDataChannel = rawDataChannel;
 	}
-	
+
 	@Override
 	public void channelRead(final ChannelHandlerContext ctx, final Object msg) throws Exception {
 		final InetSocketAddress remote = (InetSocketAddress) ctx.channel().remoteAddress();
@@ -42,10 +42,10 @@ public class MessageInboundTransponder extends ChannelInboundHandlerAdapter{
 			notify(message, remote);
 		}
 	}
-	
+
 	private void notify(final byte[] message, final InetSocketAddress remote) {
 		notifyThread.execute(new Runnable() {
-			
+
 			@Override
 			public void run() {
 				final RawData raw = new RawData(message, remote);

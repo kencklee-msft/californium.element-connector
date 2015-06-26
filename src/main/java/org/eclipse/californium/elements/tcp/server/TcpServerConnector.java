@@ -45,11 +45,9 @@ public class TcpServerConnector implements StatefulConnector, RemoteConnectionLi
 		this.cfg = cfg;
 		address = new InetSocketAddress(cfg.getRemoteAddress(), cfg.getRemotePort());
 		transponder = new MessageInboundTransponder(cfg.getCallBackExecutor() != null ? 
-														cfg.getCallBackExecutor() : 
-														Executors.newCachedThreadPool());
+				cfg.getCallBackExecutor() : Executors.newCachedThreadPool());
 		connMgr = new TcpServerConnectionMgr(this, cfg.getCallBackExecutor() != null ? 
-													cfg.getCallBackExecutor() : 
-													Executors.newCachedThreadPool());
+				cfg.getCallBackExecutor() : Executors.newCachedThreadPool());
 		this.csl = cfg.getListener();
 	}
 	

@@ -7,7 +7,7 @@ import java.util.logging.Logger;
 
 
 public class RawInboundClientHandler extends ChannelInboundHandlerAdapter{
-	
+
 	private static final Logger LOG = Logger.getLogger( RawInboundClientHandler.class.getName() );
 
 	@Override
@@ -20,12 +20,12 @@ public class RawInboundClientHandler extends ChannelInboundHandlerAdapter{
 	public void channelRead(final ChannelHandlerContext ctx, final Object msg) throws Exception {
 		super.channelRead(ctx, msg);
 	}
-	
+
 	@Override
-	 public void exceptionCaught(final ChannelHandlerContext ctx, final Throwable cause) {
+	public void exceptionCaught(final ChannelHandlerContext ctx, final Throwable cause) {
 		cause.printStackTrace();
 		ctx.close();
-	 } 
-	
-	
+	} 
+
+
 }

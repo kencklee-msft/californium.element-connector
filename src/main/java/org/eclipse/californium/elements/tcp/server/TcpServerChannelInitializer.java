@@ -42,7 +42,7 @@ public class TcpServerChannelInitializer extends ChannelInitializer<SocketChanne
 		this.connMgr = connMgr;
 		this.remoteConnectionListener = listener;
 	}
-	
+
 	public void addTLS(final SSLContext sslContext, final SSLCLientCertReq req, final String[] supportedTLSVerions) {
 		this.sslContext = sslContext;
 		this.req = req;
@@ -54,17 +54,17 @@ public class TcpServerChannelInitializer extends ChannelInitializer<SocketChanne
 		if(sslContext != null) {
 			final SSLEngine engine = sslContext.createSSLEngine();
 			switch(req) {
-				case NONE:
-					engine.setWantClientAuth(false);
-					break;
-				case WANT:
-					engine.setWantClientAuth(true);
-					break;
-				case NEED:
-					engine.setNeedClientAuth(true);
-					break;
-				default:
-					throw new IllegalArgumentException("Impossible Client Certificate request strategy");
+			case NONE:
+				engine.setWantClientAuth(false);
+				break;
+			case WANT:
+				engine.setWantClientAuth(true);
+				break;
+			case NEED:
+				engine.setNeedClientAuth(true);
+				break;
+			default:
+				throw new IllegalArgumentException("Impossible Client Certificate request strategy");
 			}
 			engine.setUseClientMode(false);
 			System.out.println("printing cypher");
@@ -85,7 +85,7 @@ public class TcpServerChannelInitializer extends ChannelInitializer<SocketChanne
 		ch.pipeline().addLast(connMgr);
 		ch.pipeline().addLast(transponder);
 	}
-	
+
 	@Override
 	public void channelActive(final ChannelHandlerContext ctx) throws Exception {
 		final InetSocketAddress remote = (InetSocketAddress)ctx.channel().remoteAddress();
@@ -93,15 +93,15 @@ public class TcpServerChannelInitializer extends ChannelInitializer<SocketChanne
 		asychNotifyOnCompleteHandshake(((SslHandler)(ctx.pipeline().get(SSL_HANDLER_ID))).handshakeFuture());
 		super.channelActive(ctx);
 	}
-	
+
 	@Override
 	public void channelInactive(final ChannelHandlerContext ctx) throws Exception {
 		super.channelInactive(ctx);
 	}
-	
+
 	private void asychNotifyOnCompleteHandshake(final Future<Channel> handShakePromise) {
 		new Thread(new Runnable() {
-			
+
 			@Override
 			public void run() {
 				try {
@@ -113,7 +113,7 @@ public class TcpServerChannelInitializer extends ChannelInitializer<SocketChanne
 				} catch (final ExecutionException e) {
 					LOG.log(Level.SEVERE, "Could not wait for TLS Handshake to be completed, waiting thread Encountered and Error ", e);
 				}
-				
+
 			}
 		}).start();
 	}

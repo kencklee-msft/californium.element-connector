@@ -31,12 +31,12 @@ public class TcpClientChannelInitializer extends ChannelInitializer<SocketChanne
 
 	private SSLContext sslContext;
 	private final RemoteConnectionListener remoteConnectionListner;
-	
+
 	public TcpClientChannelInitializer(final MessageInboundTransponder transponder, final RemoteConnectionListener listener) {
 		this.transponder = transponder;
 		this.remoteConnectionListner = listener;
 	}
-	
+
 	public void addTLS(final SSLContext sslContext) {
 		this.sslContext = sslContext;
 	}
@@ -55,10 +55,10 @@ public class TcpClientChannelInitializer extends ChannelInitializer<SocketChanne
 		ch.pipeline().addLast(new RawInboundClientHandler(), new RawOutboundClientHandler());
 		ch.pipeline().addLast(transponder);
 	}
-	
+
 	private void asychNotifyOnCompleteHandshake(final Future<Channel> handShakePromise) {
 		new Thread(new Runnable() {
-			
+
 			@Override
 			public void run() {
 				try {
@@ -70,7 +70,7 @@ public class TcpClientChannelInitializer extends ChannelInitializer<SocketChanne
 				} catch (final ExecutionException e) {
 					LOG.log(Level.SEVERE, "Could not wait for TLS Handshake to be completed, waiting thread Encountered and Error ", e);
 				}
-				
+
 			}
 		}).start();
 	}

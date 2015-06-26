@@ -8,11 +8,11 @@ import org.eclipse.californium.elements.config.TCPConnectionConfig;
 public class ThreadSafeTcpServerConnector extends TcpServerConnector{
 	public final ReentrantLock lock = new ReentrantLock();
 	public boolean isStarted = false;
-	
+
 	public ThreadSafeTcpServerConnector(final TCPConnectionConfig cfg) {
 		super(cfg);
 	}
-	
+
 	@Override
 	public void start(final boolean wait) throws IOException {
 		lock.lock();
@@ -29,7 +29,7 @@ public class ThreadSafeTcpServerConnector extends TcpServerConnector{
 			lock.unlock();
 		}
 	}
-	
+
 	@Override
 	public void stop() {
 		lock.lock();

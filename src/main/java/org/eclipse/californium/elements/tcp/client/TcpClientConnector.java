@@ -24,9 +24,9 @@ import org.eclipse.californium.elements.tcp.MessageInboundTransponder;
 import org.eclipse.californium.elements.tcp.server.RemoteConnectionListener;
 
 public class TcpClientConnector implements StatefulConnector, RemoteConnectionListener {
-	
+
 	private static final Logger LOG = Logger.getLogger( TcpClientConnector.class.getName() );
-	
+
 	private final MessageInboundTransponder transponder;
 	private final TCPConnectionConfig cfg;
 
@@ -37,39 +37,38 @@ public class TcpClientConnector implements StatefulConnector, RemoteConnectionLi
 
 	private ConnectionStateListener csl;
 
-	
+
 	public TcpClientConnector(final TCPConnectionConfig cfg) {
 		this.cfg = cfg;
 		transponder = new MessageInboundTransponder(cfg.getCallBackExecutor() != null ? 
-														cfg.getCallBackExecutor() : 
-														Executors.newCachedThreadPool());
+				cfg.getCallBackExecutor() : Executors.newCachedThreadPool());
 		this.csl = cfg.getListener();
 	}
-	
-	
+
+
 
 	@Override
 	public void start() throws IOException {
 		start(false);
 	}
-	
+
 	@Override
 	public void start(final boolean wait) throws IOException {
 		LOG.info("Staring TCP CLIENT connector");
 		netAddr = new InetSocketAddress(cfg.getRemoteAddress(), cfg.getRemotePort());
 		workerPool = new NioEventLoopGroup();
-		
+
 		final TcpClientChannelInitializer init = new TcpClientChannelInitializer(transponder, this);
 		if(cfg.isSecured()) {
 			init.addTLS(cfg.getSSlContext());
 		}
-		
+
 		final Bootstrap bootstrap = new Bootstrap();
 		bootstrap.group(workerPool)
-			   	 .remoteAddress(netAddr)
+				 .remoteAddress(netAddr)
 				 .channel(NioSocketChannel.class)
 				 .handler(init);
-			
+
 		incomingConnectionStateChange(new ConnectionInfo(ConnectionState.CONNECTING, netAddr));
 		communicationChannel = bootstrap.connect();
 		if(wait) {
@@ -115,7 +114,7 @@ public class TcpClientConnector implements StatefulConnector, RemoteConnectionLi
 	public void send(final RawData msg) {
 		LOG.finest("Sending " + msg.getSize() + " byte");
 		communicationChannel.channel().writeAndFlush(msg.getBytes()).addListener(new ChannelFutureListener() {
-			
+
 			@Override
 			public void operationComplete(final ChannelFuture future) throws Exception {
 				printOperationState(future);
@@ -144,8 +143,8 @@ public class TcpClientConnector implements StatefulConnector, RemoteConnectionLi
 	public ConnectionState getConnectionState() {
 		return state;
 	}
-	
-	
+
+
 	private class ChannelActiveListener implements ChannelFutureListener {
 
 		@Override
@@ -154,7 +153,7 @@ public class TcpClientConnector implements StatefulConnector, RemoteConnectionLi
 			incomingConnectionStateChange(new ConnectionInfo(ConnectionState.CONNECTED, getAddress()));
 		}
 	}
-	
+
 	@Override
 	public void incomingConnectionStateChange(final ConnectionInfo info) {
 		state = info.getConnectionState();
@@ -162,7 +161,7 @@ public class TcpClientConnector implements StatefulConnector, RemoteConnectionLi
 			csl.stateChange(info);
 		}
 	}
-	
+
 	private static void printOperationState(final ChannelFuture future) {
 		final StringBuilder sb = new StringBuilder();
 		sb.append("Operation Complete:");

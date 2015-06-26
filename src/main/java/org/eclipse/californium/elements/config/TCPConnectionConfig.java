@@ -19,13 +19,13 @@ public abstract class TCPConnectionConfig extends ConnectionConfig{
 	private SSLContext sslContext;	
 	private SSLCLientCertReq reqCertificate;
 	private String[] tlsVersion;
-	
+
 	public enum SSLCLientCertReq {
 		NONE,
 		WANT,
 		NEED
 	}
-	
+
 	public TCPConnectionConfig(final CommunicationRole role) {
 		this.role = role;
 	}
@@ -34,12 +34,12 @@ public abstract class TCPConnectionConfig extends ConnectionConfig{
 	public final LayerSemantic getTransportLayer() {
 		return LayerSemantic.TCP;
 	}
-	
+
 	@Override
 	public final CommunicationRole getCommunicationRole() {
 		return role;
 	}
-	
+
 	/**
 	 * only NIO is implemented for now
 	 * @return
@@ -47,7 +47,7 @@ public abstract class TCPConnectionConfig extends ConnectionConfig{
 	public final ConnectionSemantic getConnectionSemantic() {
 		return ConnectionSemantic.NIO;
 	}
-	
+
 	/**
 	 * set whether the connection is shared amongst all endpoint
 	 * @return
@@ -56,7 +56,7 @@ public abstract class TCPConnectionConfig extends ConnectionConfig{
 		//default implementation
 		return getCommunicationRole().equals(CommunicationRole.SERVER);
 	}
-	
+
 	/**
 	 * if no ConnectionState Listener 
 	 * is supplied, event will not be sent up
@@ -66,7 +66,7 @@ public abstract class TCPConnectionConfig extends ConnectionConfig{
 		//default implementation
 		return null;
 	}
-	
+
 	/**
 	 * add any options the Channel
 	 * @param option
@@ -76,7 +76,7 @@ public abstract class TCPConnectionConfig extends ConnectionConfig{
 		//default implementation
 		options.put(option, value);
 	}
-	
+
 	/**
 	 * return the map of option
 	 * @return
@@ -84,7 +84,7 @@ public abstract class TCPConnectionConfig extends ConnectionConfig{
 	public final Map<ChannelOption<?>, Object> getChannelOptions() {
 		return options;
 	}
-	
+
 	/**
 	 * get the Executor containing the Threads used to send callback and notify back 
 	 * to Californium
@@ -94,7 +94,7 @@ public abstract class TCPConnectionConfig extends ConnectionConfig{
 		//default implementation
 		return Executors.newCachedThreadPool();
 	}
-	
+
 	/**
 	 * set you SSL details for a socket server
 	 * pass in the SSL context, the supported TLS version and if there is a need or obligation 
@@ -114,7 +114,7 @@ public abstract class TCPConnectionConfig extends ConnectionConfig{
 			throw new IllegalArgumentException("Cannot set Server side security on a TCP Client");
 		}
 	}
-	
+
 	/**
 	 * set the SSL context for the TCP Client
 	 * @param context
@@ -128,19 +128,19 @@ public abstract class TCPConnectionConfig extends ConnectionConfig{
 			throw new IllegalArgumentException("Cannot set Client side security on a TCP Server");
 		}
 	}
-	
+
 	public final boolean isSecured() {
 		return isSecure;
 	}
-	
+
 	public final SSLCLientCertReq getSslClientCertificateRequestLevel() {
 		return reqCertificate;
 	}
-	
+
 	public final String[] getTLSVersions() {
 		return tlsVersion;
 	}
-	
+
 	public final SSLContext getSSlContext() {
 		return sslContext;
 	}

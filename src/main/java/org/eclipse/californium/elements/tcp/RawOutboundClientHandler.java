@@ -11,7 +11,7 @@ public class RawOutboundClientHandler extends ChannelOutboundHandlerAdapter{
 
 	private static final Logger LOG = Logger.getLogger( RawOutboundClientHandler.class.getName() );
 
-	
+
 	@Override
 	public void write(final ChannelHandlerContext ctx, final Object msg, final ChannelPromise promise) throws Exception {
 		final byte[] message = (byte[])msg;
@@ -20,10 +20,10 @@ public class RawOutboundClientHandler extends ChannelOutboundHandlerAdapter{
 		bb.writeBytes(message);
 		ctx.write(bb, promise);
 	}
-	
+
 	@Override
 	public void flush(final ChannelHandlerContext ctx) throws Exception {
 		ctx.flush();
 	}
-	
+
 }

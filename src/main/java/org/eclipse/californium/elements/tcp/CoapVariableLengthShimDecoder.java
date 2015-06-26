@@ -35,15 +35,15 @@ import java.util.List;
  *
  */
 public class CoapVariableLengthShimDecoder extends ByteToMessageDecoder{
-	
+
 	private static final int NO_CODE_MAX_LENGTH = 0x17;
 	private static final int UINT_8_BIT_LENGTH_CODE = 0x18;
 	private static final int UINT_16_BIT_LENGTH_CODE = 0x019;
 	private static final int UINT_32_BIT_LENGTH_CODE = 0x1A;
 	private static final int RESERVED_LENGTH_INDICATOR = 0xE0;
-	
+
 	private final int MAX_FRAME_SIZE;
-	
+
 	public CoapVariableLengthShimDecoder() {
 		this(Integer.MAX_VALUE);
 	}
@@ -79,7 +79,7 @@ public class CoapVariableLengthShimDecoder extends ByteToMessageDecoder{
 		default:
 			throw new CorruptedFrameException("Length of the Frame is Invalid");
 		}
-		
+
 		if(size < MAX_FRAME_SIZE) {		
 			final Object decoded = decode(ctx, in, size, lengthFieldSize);
 			if(decoded != null) {
@@ -106,12 +106,12 @@ public class CoapVariableLengthShimDecoder extends ByteToMessageDecoder{
 		//skip the length bytes
 		final int readerIndex = in.skipBytes(lengthFieldAdjust).readerIndex();
 		final ByteBuf frame = extractFrame(ctx, in, readerIndex, frameSize);
-        in.readerIndex(readerIndex + frameSize);
+		in.readerIndex(readerIndex + frameSize);
 
-        return frame;
-		
+		return frame;
+
 	}
-	
+
 	/**
 	 * get the frame for the specified length 
 	 * @param ctx
@@ -121,10 +121,10 @@ public class CoapVariableLengthShimDecoder extends ByteToMessageDecoder{
 	 * @return
 	 */
 	protected ByteBuf extractFrame(final ChannelHandlerContext ctx, final ByteBuf buffer, final int index, final int length) {
-        final ByteBuf frame = ctx.alloc().buffer(length);
-        frame.writeBytes(buffer, index, length);
-        return frame;
-    }
+		final ByteBuf frame = ctx.alloc().buffer(length);
+		frame.writeBytes(buffer, index, length);
+		return frame;
+	}
 
 	/**
 	 * get the size from the following bytes
@@ -170,7 +170,7 @@ public class CoapVariableLengthShimDecoder extends ByteToMessageDecoder{
 	 * @return
 	 */
 	private int getLengthCode(final byte in) {
-		
+
 		//specific size
 		if(in == UINT_8_BIT_LENGTH_CODE) {
 			return UINT_8_BIT_LENGTH_CODE;
@@ -179,12 +179,12 @@ public class CoapVariableLengthShimDecoder extends ByteToMessageDecoder{
 		}else if(in == UINT_32_BIT_LENGTH_CODE) {
 			return UINT_32_BIT_LENGTH_CODE;
 		}
-		
+
 		//dynamic minimal size (evalute mask at 5 least sig bit)
 		final byte dynSize = (byte) (in >>> 3);
 		if((dynSize & (byte)0xFF) == 0x0 ||
-		   (dynSize & (byte)0xFF) == 0x1 ||
-		   (dynSize & (byte)0xFF) == 0x2 ) {
+				(dynSize & (byte)0xFF) == 0x1 ||
+				(dynSize & (byte)0xFF) == 0x2 ) {
 			return NO_CODE_MAX_LENGTH;
 		}
 		//error: using reserved bits (evaluate the 3 reserved byte)

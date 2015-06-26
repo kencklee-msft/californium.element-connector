@@ -17,17 +17,17 @@ import org.eclipse.californium.elements.tcp.ConnectionInfo.ConnectionState;
 public class TcpServerConnectionMgr extends ChannelInboundHandlerAdapter{	
 	private static final Logger LOG = Logger.getLogger( TcpServerConnectionMgr.class.getName() );
 
-	
+
 	//use to notify different event  without blocking netty's thread.
 	//should be taken from a configurable pool
 	private final Executor notifyThread;
-	
+
 	/**
 	 * this is not very efficient, but will suffice for POC
 	 */
 	private final ConcurrentHashMap<InetSocketAddress, Channel> connections = new ConcurrentHashMap<InetSocketAddress, Channel>();
 	private final RemoteConnectionListener listener;
-	
+
 	public TcpServerConnectionMgr(final RemoteConnectionListener listener, final Executor notifyThread) {
 		this.listener = listener;
 		this.notifyThread = notifyThread;
@@ -40,7 +40,7 @@ public class TcpServerConnectionMgr extends ChannelInboundHandlerAdapter{
 		notify(new ConnectionInfo(ConnectionState.NEW_INCOMING_CONNECT, remote));
 		super.channelActive(ctx);
 	}
-	
+
 	@Override
 	public void channelInactive(final ChannelHandlerContext ctx) throws Exception {
 		final InetSocketAddress remote = (InetSocketAddress)ctx.channel().remoteAddress();
@@ -53,13 +53,13 @@ public class TcpServerConnectionMgr extends ChannelInboundHandlerAdapter{
 		}
 		super.channelInactive(ctx);
 	}
-	
+
 	public Channel getChannel(final InetSocketAddress address) {
 		LOG.finest("request for Channel " + address.toString());
 		return connections.get(address);
 	}
-	
-	
+
+
 	private void notify(final ConnectionInfo info) {
 		notifyThread.execute(new Runnable() {
 			@Override

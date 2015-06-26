@@ -3,7 +3,7 @@ package org.eclipse.californium.elements.tcp;
 import java.net.InetSocketAddress;
 
 public class ConnectionInfo {
-	
+
 	public enum ConnectionState {
 		CONNECTING,
 		CONNECTED,
@@ -18,20 +18,20 @@ public class ConnectionInfo {
 
 	private final InetSocketAddress remote;
 	private final ConnectionState state;
-	
+
 	public ConnectionInfo(final ConnectionState state, final InetSocketAddress remote) {
 		this.state = state;
 		this.remote = remote;
 	}
-	
+
 	public ConnectionState getConnectionState() {
 		return state;
 	}
-	
+
 	public InetSocketAddress getRemote() {
 		return remote;
 	}
-	
+
 	@Override
 	public String toString() {
 		final StringBuilder sb = new StringBuilder();

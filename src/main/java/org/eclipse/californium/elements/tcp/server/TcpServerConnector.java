@@ -113,7 +113,6 @@ public class TcpServerConnector implements StatefulConnector, RemoteConnectionLi
 		final Channel ch = connMgr.getChannel(msg.getInetSocketAddress());
 		if(ch != null) {
 			LOG.finest("Sending " + msg.getSize() + " byte" + " to " + ch.remoteAddress().toString());
-			
 			ch.writeAndFlush(msg.getBytes()).addListener(new ChannelFutureListener() {
 				
 				@Override

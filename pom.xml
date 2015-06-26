@@ -11,7 +11,7 @@
 
 	<groupId>org.eclipse.californium</groupId>
 	<artifactId>element-connector</artifactId>
-	<version>99.0.1-SNAPSHOT</version>
+	<version>99.0.2-SNAPSHOT</version>
 	<packaging>bundle</packaging>
 
 	<name>element-connector</name>

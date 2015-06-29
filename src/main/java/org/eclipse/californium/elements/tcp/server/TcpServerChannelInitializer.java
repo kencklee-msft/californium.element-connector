@@ -4,8 +4,8 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.SocketChannel;
-import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
-import io.netty.handler.codec.LengthFieldPrepender;
+import io.netty.handler.codec.bytes.ByteArrayDecoder;
+import io.netty.handler.codec.bytes.ByteArrayEncoder;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.util.concurrent.Future;
 
@@ -21,8 +21,8 @@ import org.eclipse.californium.elements.config.TCPConnectionConfig.SSLCLientCert
 import org.eclipse.californium.elements.tcp.ConnectionInfo;
 import org.eclipse.californium.elements.tcp.ConnectionInfo.ConnectionState;
 import org.eclipse.californium.elements.tcp.MessageInboundTransponder;
-import org.eclipse.californium.elements.tcp.RawInboundClientHandler;
-import org.eclipse.californium.elements.tcp.RawOutboundClientHandler;
+import org.eclipse.californium.elements.tcp.framing.FourByteFieldPrepender;
+import org.eclipse.californium.elements.tcp.framing.FourByteFrameDecoder;
 
 public class TcpServerChannelInitializer extends ChannelInitializer<SocketChannel> {
 	private static final Logger LOG = Logger.getLogger( TcpServerChannelInitializer.class.getName() );
@@ -73,8 +73,8 @@ public class TcpServerChannelInitializer extends ChannelInitializer<SocketChanne
 			engine.setEnableSessionCreation(true);
 			ch.pipeline().addFirst(SSL_HANDLER_ID, new SslHandler(engine));//init the TLS since we are the client
 		}
-		ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4), new LengthFieldPrepender(4));
-		ch.pipeline().addLast(new RawInboundClientHandler(), new RawOutboundClientHandler());
+		ch.pipeline().addLast(new FourByteFrameDecoder(), new FourByteFieldPrepender());
+		ch.pipeline().addLast(new ByteArrayDecoder(), new ByteArrayEncoder());
 		ch.pipeline().addLast(connMgr);
 		ch.pipeline().addLast(transponder);
 	}

@@ -1,4 +1,4 @@
-package org.eclipse.californium.elements.tcp;
+package org.eclipse.californium.elements.tcp.framing;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;

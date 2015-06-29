@@ -3,8 +3,8 @@ package org.eclipse.californium.elements.tcp.client;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.SocketChannel;
-import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
-import io.netty.handler.codec.LengthFieldPrepender;
+import io.netty.handler.codec.bytes.ByteArrayDecoder;
+import io.netty.handler.codec.bytes.ByteArrayEncoder;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.util.concurrent.Future;
 
@@ -19,8 +19,8 @@ import javax.net.ssl.SSLEngine;
 import org.eclipse.californium.elements.tcp.ConnectionInfo;
 import org.eclipse.californium.elements.tcp.ConnectionInfo.ConnectionState;
 import org.eclipse.californium.elements.tcp.MessageInboundTransponder;
-import org.eclipse.californium.elements.tcp.RawInboundClientHandler;
-import org.eclipse.californium.elements.tcp.RawOutboundClientHandler;
+import org.eclipse.californium.elements.tcp.framing.FourByteFieldPrepender;
+import org.eclipse.californium.elements.tcp.framing.FourByteFrameDecoder;
 import org.eclipse.californium.elements.tcp.server.RemoteConnectionListener;
 
 public class TcpClientChannelInitializer extends ChannelInitializer<SocketChannel>{
@@ -51,8 +51,8 @@ public class TcpClientChannelInitializer extends ChannelInitializer<SocketChanne
 			remoteConnectionListner.incomingConnectionStateChange(new ConnectionInfo(ConnectionState.TLS_HANDSHAKE_STARTED, ch.remoteAddress()));
 			asychNotifyOnCompleteHandshake(sslHandler.handshakeFuture());
 		}
-		ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4), new LengthFieldPrepender(4));
-		ch.pipeline().addLast(new RawInboundClientHandler(), new RawOutboundClientHandler());
+		ch.pipeline().addLast(new FourByteFrameDecoder(), new FourByteFieldPrepender());
+		ch.pipeline().addLast(new ByteArrayDecoder(), new ByteArrayEncoder());
 		ch.pipeline().addLast(transponder);
 	}
 

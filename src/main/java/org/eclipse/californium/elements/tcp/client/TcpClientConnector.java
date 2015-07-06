@@ -1,16 +1,17 @@
 package org.eclipse.californium.elements.tcp.client;
 
 import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import io.netty.util.concurrent.Future;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.LinkedList;
 import java.util.concurrent.Executors;
-import java.util.logging.Level;
+import java.util.concurrent.Future;
 import java.util.logging.Logger;
 
 import org.eclipse.californium.elements.RawData;
@@ -22,6 +23,8 @@ import org.eclipse.californium.elements.tcp.ConnectionInfo.ConnectionState;
 import org.eclipse.californium.elements.tcp.ConnectionStateListener;
 import org.eclipse.californium.elements.tcp.MessageInboundTransponder;
 import org.eclipse.californium.elements.tcp.server.RemoteConnectionListener;
+import org.eclipse.californium.elements.utils.FutureAggregate;
+import org.eclipse.californium.elements.utils.TransitiveFuture;
 
 public class TcpClientConnector implements StatefulConnector, RemoteConnectionListener {
 
@@ -47,20 +50,19 @@ public class TcpClientConnector implements StatefulConnector, RemoteConnectionLi
 
 
 
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
-	public void start() throws IOException {
-		start(false);
-	}
-
-	@Override
-	public void start(final boolean wait) throws IOException {
+	public Future<?> start() throws IOException {
+		final LinkedList<Future<?>> connectionStep = new LinkedList<Future<?>>();
 		LOG.info("Staring TCP CLIENT connector");
 		netAddr = new InetSocketAddress(cfg.getRemoteAddress(), cfg.getRemotePort());
 		workerPool = new NioEventLoopGroup();
 
-		final TcpClientChannelInitializer init = new TcpClientChannelInitializer(transponder, this);
+		final TcpClientChannelInitializer init = new TcpClientChannelInitializer(transponder);
 		if(cfg.isSecured()) {
-			init.addTLS(cfg.getSSlContext());
+			final TransitiveFuture<Channel> tlsSecuredFuture = new TransitiveFuture<Channel>();
+			init.addTLS(cfg.getSSlContext(), tlsSecuredFuture);
+			connectionStep.add(tlsSecuredFuture);
 		}
 
 		final Bootstrap bootstrap = new Bootstrap();
@@ -69,38 +71,22 @@ public class TcpClientConnector implements StatefulConnector, RemoteConnectionLi
 				 .channel(NioSocketChannel.class)
 				 .handler(init);
 
-		incomingConnectionStateChange(new ConnectionInfo(ConnectionState.CONNECTING, netAddr));
-		communicationChannel = bootstrap.connect();
-		if(wait) {
-			try {
-				communicationChannel.sync();
-			} catch (final InterruptedException e) {
-				LOG.log(Level.SEVERE, "Waiting for connection was interupted", e);
-			}
-		}
+		communicationChannel = bootstrap.connect();		
 		communicationChannel.addListener(new ChannelActiveListener());
+		connectionStep.addFirst(communicationChannel);
+		return new FutureAggregate(connectionStep.toArray(new Future<?>[connectionStep.size()]));
 	}
 
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
-	public void stop() {
+	public Future<?> stop() {
+		FutureAggregate aggregateFuture = null;
 		if(communicationChannel != null) {
-			try {
-				incomingConnectionStateChange(new ConnectionInfo(ConnectionState.DISCONNECTING, getAddress()));
-				final ChannelFuture closeFuture = communicationChannel.channel().closeFuture();
-				final Future<?> workerPoolShutdown = workerPool.shutdownGracefully();
-				boolean result = closeFuture.await(1000);
-				LOG.finest("Stopping Communication Channel succes?: " + result);
-				result = workerPoolShutdown.await(1000);
-				LOG.finest("Stopping WorkerPool succes?: " + result);
-
-			} catch (final InterruptedException e) {
-				LOG.log(Level.SEVERE, "error in stop: ", e);
-			}
-			finally {
-				incomingConnectionStateChange(new ConnectionInfo(ConnectionState.DISCONNECTING, getAddress()));
-			}
+			aggregateFuture = new FutureAggregate(communicationChannel.channel().closeFuture(),
+													  workerPool.shutdownGracefully());
 		}
 		netAddr = null;
+		return aggregateFuture != null ? aggregateFuture : new FutureAggregate();
 	}
 
 	@Override
@@ -111,15 +97,9 @@ public class TcpClientConnector implements StatefulConnector, RemoteConnectionLi
 	}
 
 	@Override
-	public void send(final RawData msg) {
+	public Future<?> send(final RawData msg) {
 		LOG.finest("Sending " + msg.getSize() + " byte");
-		communicationChannel.channel().writeAndFlush(msg.getBytes()).addListener(new ChannelFutureListener() {
-
-			@Override
-			public void operationComplete(final ChannelFuture future) throws Exception {
-				printOperationState(future);
-			}
-		});
+		return communicationChannel.channel().writeAndFlush(msg.getBytes());
 	}
 
 	@Override
@@ -150,7 +130,6 @@ public class TcpClientConnector implements StatefulConnector, RemoteConnectionLi
 		@Override
 		public void operationComplete(final ChannelFuture future) throws Exception {
 			printOperationState(future);
-			incomingConnectionStateChange(new ConnectionInfo(ConnectionState.CONNECTED, getAddress()));
 		}
 	}
 
@@ -186,8 +165,4 @@ public class TcpClientConnector implements StatefulConnector, RemoteConnectionLi
 	public void addConnectionStateListener(final ConnectionStateListener listener) {
 		csl = listener;
 	}
-
-
-
-
 }

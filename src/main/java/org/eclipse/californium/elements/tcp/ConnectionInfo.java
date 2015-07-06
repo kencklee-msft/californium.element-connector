@@ -5,15 +5,11 @@ import java.net.InetSocketAddress;
 public class ConnectionInfo {
 
 	public enum ConnectionState {
-		CONNECTING,
 		CONNECTED,
-		DISCONNECTING,
 		DISCONNECTED,
 		NEW_INCOMING_CONNECT,
 		NEW_INCOMING_DISCONNECT,
-		TLS_HANDSHAKE_STARTED,
 		CONNECTED_SECURE,
-		TLS_HANDSHAKE_FAILED;
 	}
 
 	private final InetSocketAddress remote;

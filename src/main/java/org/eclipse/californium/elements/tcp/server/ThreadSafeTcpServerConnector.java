@@ -1,6 +1,7 @@
 package org.eclipse.californium.elements.tcp.server;
 
 import java.io.IOException;
+import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -12,17 +13,19 @@ public class ThreadSafeTcpServerConnector extends TcpServerConnector{
 
 	public final ReentrantLock lock = new ReentrantLock();
 	public boolean isStarted = false;
+	public Future<?> startFuture;
+	public Future<?> stopFuture;
 
 	public ThreadSafeTcpServerConnector(final TCPConnectionConfig cfg) {
 		super(cfg);
 	}
 
 	@Override
-	public void start(final boolean wait) throws IOException {
+	public Future<?> start() throws IOException {
 		lock.lock();
 		try {
 			if(!isStarted) {
-				super.start(wait);
+				startFuture = super.start();
 				isStarted = true;
 			}
 			else {
@@ -32,14 +35,15 @@ public class ThreadSafeTcpServerConnector extends TcpServerConnector{
 		finally {
 			lock.unlock();
 		}
+		return startFuture;
 	}
 
 	@Override
-	public void stop() {
+	public Future<?> stop() {
 		lock.lock();
 		try {
 			if(isStarted) {
-				super.stop();
+				stopFuture = super.stop();
 				isStarted = false;
 			}
 			else {
@@ -49,6 +53,7 @@ public class ThreadSafeTcpServerConnector extends TcpServerConnector{
 		finally {
 			lock.unlock();
 		}
+		return stopFuture;
 	}
 
 }

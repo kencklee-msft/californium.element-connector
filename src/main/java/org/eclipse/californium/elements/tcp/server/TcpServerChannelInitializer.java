@@ -8,10 +8,9 @@ import io.netty.handler.codec.bytes.ByteArrayDecoder;
 import io.netty.handler.codec.bytes.ByteArrayEncoder;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.util.concurrent.Future;
+import io.netty.util.concurrent.GenericFutureListener;
 
 import java.net.InetSocketAddress;
-import java.util.concurrent.ExecutionException;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.net.ssl.SSLContext;
@@ -82,8 +81,8 @@ public class TcpServerChannelInitializer extends ChannelInitializer<SocketChanne
 	@Override
 	public void channelActive(final ChannelHandlerContext ctx) throws Exception {
 		final InetSocketAddress remote = (InetSocketAddress)ctx.channel().remoteAddress();
-		remoteConnectionListener.incomingConnectionStateChange(new ConnectionInfo(ConnectionState.TLS_HANDSHAKE_STARTED, remote));
-		asychNotifyOnCompleteHandshake(((SslHandler)(ctx.pipeline().get(SSL_HANDLER_ID))).handshakeFuture());
+
+		((SslHandler)(ctx.pipeline().get(SSL_HANDLER_ID))).handshakeFuture().addListener(new TLSHandshakeListener());
 		super.channelActive(ctx);
 	}
 
@@ -92,22 +91,13 @@ public class TcpServerChannelInitializer extends ChannelInitializer<SocketChanne
 		super.channelInactive(ctx);
 	}
 
-	private void asychNotifyOnCompleteHandshake(final Future<Channel> handShakePromise) {
-		new Thread(new Runnable() {
+	private class TLSHandshakeListener implements GenericFutureListener<Future<Channel>> {
 
-			@Override
-			public void run() {
-				try {
-					final Channel c = handShakePromise.get();
-					remoteConnectionListener.incomingConnectionStateChange(new ConnectionInfo(ConnectionState.CONNECTED_SECURE, (InetSocketAddress)c.remoteAddress()));
-					LOG.info("TLS Handshake was completed ");
-				} catch (final InterruptedException e) {
-					LOG.log(Level.SEVERE, "Could not wait for TLS Handshake to be completed, waiting thread was interupted ", e);
-				} catch (final ExecutionException e) {
-					LOG.log(Level.SEVERE, "Could not wait for TLS Handshake to be completed, waiting thread Encountered and Error ", e);
-				}
-
-			}
-		}).start();
+		@Override
+		public void operationComplete(final Future<Channel> future) throws Exception {
+			remoteConnectionListener.incomingConnectionStateChange(
+					new ConnectionInfo(ConnectionState.CONNECTED_SECURE, (InetSocketAddress)future.get().remoteAddress()));
+			LOG.info("TLS Handshake was completed ");			
+		}
 	}
 }

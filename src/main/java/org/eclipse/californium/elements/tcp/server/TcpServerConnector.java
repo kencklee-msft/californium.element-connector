@@ -12,7 +12,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.Executors;
-import java.util.logging.Level;
+import java.util.concurrent.Future;
 import java.util.logging.Logger;
 
 import org.eclipse.californium.elements.RawData;
@@ -23,6 +23,7 @@ import org.eclipse.californium.elements.tcp.ConnectionInfo;
 import org.eclipse.californium.elements.tcp.ConnectionInfo.ConnectionState;
 import org.eclipse.californium.elements.tcp.ConnectionStateListener;
 import org.eclipse.californium.elements.tcp.MessageInboundTransponder;
+import org.eclipse.californium.elements.utils.FutureAggregate;
 
 public class TcpServerConnector implements StatefulConnector, RemoteConnectionListener {
 	
@@ -52,7 +53,7 @@ public class TcpServerConnector implements StatefulConnector, RemoteConnectionLi
 	}
 	
 	@Override
-	public void start(final boolean wait) throws IOException {
+	public Future<?> start() throws IOException {
 		LOG.info("Staring TCP SERVER connector with Xconn");
 		bossGroup = new NioEventLoopGroup(50);
 		workerGroup = new NioEventLoopGroup(50);
@@ -79,26 +80,17 @@ public class TcpServerConnector implements StatefulConnector, RemoteConnectionLi
 			}
 		});
 				
-		if(wait) {
-			try {
-				communicationChannel.sync();
-			} catch (final InterruptedException e) {
-				LOG.log(Level.SEVERE, "Waiting for connection was interupted");
-			}
-		}
+		return communicationChannel;
 	}
 
 	@Override
-	public void start() throws IOException {
-		start(false);
-	}
-
-	@Override
-	public void stop() {
-		communicationChannel.channel().close();
-		bossGroup.shutdownGracefully();
-		workerGroup.shutdownGracefully();
+	public Future<?> stop() {
+		@SuppressWarnings({ "rawtypes", "unchecked" })
+		final FutureAggregate aggregateFuture = new FutureAggregate(communicationChannel.channel().closeFuture(), 
+															  bossGroup.shutdownGracefully(),
+															  workerGroup.shutdownGracefully());
 		incomingConnectionStateChange(new ConnectionInfo(ConnectionState.DISCONNECTED, getAddress()));
+		return aggregateFuture;
 	}
 
 	@Override
@@ -109,20 +101,15 @@ public class TcpServerConnector implements StatefulConnector, RemoteConnectionLi
 	}
 
 	@Override
-	public void send(final RawData msg) {
+	public Future<?> send(final RawData msg) {
 		final Channel ch = connMgr.getChannel(msg.getInetSocketAddress());
 		if(ch != null) {
 			LOG.finest("Sending " + msg.getSize() + " byte" + " to " + ch.remoteAddress().toString());
-			ch.writeAndFlush(msg.getBytes()).addListener(new ChannelFutureListener() {
-				
-				@Override
-				public void operationComplete(final ChannelFuture future) throws Exception {
-					printOperationState(future);
-				}
-			});
+			return ch.writeAndFlush(msg.getBytes());
 		}
 		else {
 			LOG.finest("No Channel available to message.  Unknown Connection " + msg.getAddress().toString());
+			return null;
 		}
 	}
 

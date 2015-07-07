@@ -12,6 +12,7 @@ import java.net.InetSocketAddress;
 import java.util.LinkedList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.eclipse.californium.elements.RawData;
@@ -63,9 +64,7 @@ public class TcpClientConnector implements StatefulConnector {
 
 		final Bootstrap bootstrap = new Bootstrap();
 		bootstrap.group(workerPool)
-				 .remoteAddress(netAddr)
-				 .channel(NioSocketChannel.class)
-				 .handler(init);
+.remoteAddress(netAddr).channel(NioSocketChannel.class).handler(init);
 
 		communicationChannel = bootstrap.connect();		
 		communicationChannel.addListener(new ChannelActiveListener());
@@ -79,7 +78,7 @@ public class TcpClientConnector implements StatefulConnector {
 		FutureAggregate aggregateFuture = null;
 		if(communicationChannel != null) {
 			aggregateFuture = new FutureAggregate(communicationChannel.channel().closeFuture(),
-													  workerPool.shutdownGracefully());
+ workerPool.shutdownGracefully());
 		}
 		netAddr = null;
 		return aggregateFuture != null ? aggregateFuture : new FutureAggregate();
@@ -124,23 +123,22 @@ public class TcpClientConnector implements StatefulConnector {
 	}
 
 	private static void printOperationState(final ChannelFuture future) {
-		final StringBuilder sb = new StringBuilder();
-		sb.append("Operation Complete:");
-		if(future.isDone()) {
-			if(future.isSuccess()) {
-				sb.append("Operation is Succes");
+		if (LOG.isLoggable(Level.FINEST)) {
+			final StringBuilder sb = new StringBuilder();
+			sb.append("Operation Complete:");
+			if (future.isDone()) {
+				if (future.isSuccess()) {
+					sb.append("Operation was successful");
+				} else if (!future.isSuccess() && !future.isCancelled()) {
+					sb.append("Operation Failed: ").append(future.cause());
+				} else {
+					sb.append("Operation was cancelled");
+				}
+			} else {
+				sb.append("Operation was not completed");
 			}
-			else if (!future.isSuccess() && !future.isCancelled()){
-				sb.append("Operation Failed: ").append(future.cause());
-			}
-			else {
-				sb.append("Operation was cancelled");
-			}
+			LOG.finest(sb.toString());
 		}
-		else {
-			sb.append("Operation Uncompletd");
-		}
-		LOG.finest(sb.toString());
 	}
 
 	@Override

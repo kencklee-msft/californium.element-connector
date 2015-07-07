@@ -8,6 +8,7 @@ import io.netty.util.internal.StringUtil;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.Executor;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.eclipse.californium.elements.RawData;
@@ -49,7 +50,9 @@ public class MessageInboundTransponder extends ChannelInboundHandlerAdapter{
 			@Override
 			public void run() {
 				final RawData raw = new RawData(message, remote);
-				LOG.finest("RAW INBOUND: " + StringUtil.toHexString(message) + " from " + remote.toString());
+				if (LOG.isLoggable(Level.FINEST)) {
+					LOG.finest("RAW INBOUND: " + StringUtil.toHexString(message) + " from " + remote);
+				}
 				rawDataChannel.receiveData(raw);
 			}
 		});

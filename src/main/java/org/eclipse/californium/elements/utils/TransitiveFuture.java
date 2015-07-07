@@ -17,23 +17,23 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public final class TransitiveFuture<V> implements Future<V> {
 
-	private final AtomicBoolean isFowarded = new AtomicBoolean(false);
+	private final AtomicBoolean isForwarded = new AtomicBoolean(false);
 	private final AtomicBoolean isCancelled = new AtomicBoolean(false);
 	
-	private final ReentrantLock waitForFowardLock = new ReentrantLock();
-	private final Condition doneOrCanclled = waitForFowardLock.newCondition();
+	private final ReentrantLock waitForForwardLock = new ReentrantLock();
+	private final Condition doneOrCancelled = waitForForwardLock.newCondition();
 
-	private Future<V> fowardFuture;
+	private Future<V> forwardFuture;
 
 	public boolean setTransitiveFuture(final Future<V> future) {
-		if(!isFowarded.getAndSet(true)) {
-			waitForFowardLock.lock();
+		if(!isForwarded.getAndSet(true)) {
+			waitForForwardLock.lock();
 			try {
-				fowardFuture = future;
-				doneOrCanclled.signalAll();
+				forwardFuture = future;
+				doneOrCancelled.signalAll();
 			}
 			finally {
-				waitForFowardLock.unlock();
+				waitForForwardLock.unlock();
 			}
 			return true;
 		}
@@ -45,26 +45,26 @@ public final class TransitiveFuture<V> implements Future<V> {
 		if(isCancelled.get()) {
 			return false;
 		}
-		if(isFowarded.get() && !isCancelled.get()) {
-			return fowardFuture.cancel(mayInterruptIfRunning);
+		if(isForwarded.get() && !isCancelled.get()) {
+			return forwardFuture.cancel(mayInterruptIfRunning);
 		}
 		else {
-			final boolean canceled =  isCancelled.compareAndSet(false, true);
-			waitForFowardLock.lock(); 
+			final boolean cancelled =  isCancelled.compareAndSet(false, true);
+			waitForForwardLock.lock(); 
 			try {
-				doneOrCanclled.signalAll();
+				doneOrCancelled.signalAll();
 			}
 			finally{
-				waitForFowardLock.unlock();
+				waitForForwardLock.unlock();
 			}
-			return canceled;
+			return cancelled;
 		}
 	}
 
 	@Override
 	public boolean isCancelled() {
-		if(!isCancelled.get() || isFowarded.get()) {
-			return fowardFuture.isCancelled();
+		if(!isCancelled.get() || isForwarded.get()) {
+			return forwardFuture.isCancelled();
 		}
 		return isCancelled.get();
 	}
@@ -74,8 +74,8 @@ public final class TransitiveFuture<V> implements Future<V> {
 		if(isCancelled.get()) {
 			return true;
 		}
-		if(isFowarded.get()) {
-			return fowardFuture.isDone();
+		if(isForwarded.get()) {
+			return forwardFuture.isDone();
 		}
 		return false;
 	}
@@ -84,10 +84,10 @@ public final class TransitiveFuture<V> implements Future<V> {
 	public V get() throws InterruptedException, ExecutionException {
 		if(!isCancelled.get()) {
 			waitForFoward();
-			return fowardFuture.get();
+			return forwardFuture.get();
 		}
 		else {
-			throw new CancellationException("Future was Canceled");
+			throw new CancellationException("Future was cancelled");
 		}		
 	}
 
@@ -100,32 +100,32 @@ public final class TransitiveFuture<V> implements Future<V> {
 			if(!reachTimeout) {
 				final long delta = System.currentTimeMillis() - before;
 				final long remaider = timeoutMs - delta;
-				return fowardFuture.get(remaider, TimeUnit.MILLISECONDS);
+				return forwardFuture.get(remaider, TimeUnit.MILLISECONDS);
 			}
 		}
-		throw new CancellationException("Future was Canceled");
+		throw new CancellationException("Future was cancelled");
 	}
 	
 	private void waitForFoward() throws InterruptedException {
-		if(!isFowarded.get()){
-			waitForFowardLock.lock();
+		if(!isForwarded.get()){
+			waitForForwardLock.lock();
 			try {
-				doneOrCanclled.await();
+				doneOrCancelled.await();
 			}
 			finally {
-				waitForFowardLock.unlock();
+				waitForForwardLock.unlock();
 			}
 		}
 	}
 	
 	private boolean waitForFoward(final long timeout, final TimeUnit unit) throws InterruptedException {
-		if(!isFowarded.get()){
-			waitForFowardLock.lock();
+		if(!isForwarded.get()){
+			waitForForwardLock.lock();
 			try {
-				return doneOrCanclled.await(timeout, unit);
+				return doneOrCancelled.await(timeout, unit);
 			}
 			finally {
-				waitForFowardLock.unlock();
+				waitForForwardLock.unlock();
 			}
 		}
 		return true;

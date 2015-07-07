@@ -61,8 +61,8 @@ public class TcpServerConnector implements StatefulConnector, RemoteConnectionLi
 		if(cfg.isSecured()) {
 			init.addTLS(cfg.getSSlContext(), cfg.getSslClientCertificateRequestLevel(), cfg.getTLSVersions());
 		}
-		final ServerBootstrap bootsrap = new ServerBootstrap();
-		bootsrap.group(bossGroup, workerGroup)
+		final ServerBootstrap bootstrap = new ServerBootstrap();
+		bootstrap.group(bossGroup, workerGroup)
 				.localAddress(address.getPort())
 				.channel(NioServerSocketChannel.class)
 				.childHandler(init)
@@ -70,12 +70,12 @@ public class TcpServerConnector implements StatefulConnector, RemoteConnectionLi
 				.childOption(ChannelOption.SO_KEEPALIVE, true)
 				.childOption(ChannelOption.TCP_NODELAY, true);
 
-		communicationChannel = bootsrap.bind();
+		communicationChannel = bootstrap.bind();
 		communicationChannel.addListener(new ChannelFutureListener() {
 			
 			@Override
 			public void operationComplete(final ChannelFuture future) throws Exception {
-				printOperationState(future);
+				LOG.finest("Operation Complete");
 				incomingConnectionStateChange(new ConnectionInfo(ConnectionState.CONNECTED, (InetSocketAddress)future.channel().remoteAddress()));
 			}
 		});
@@ -123,26 +123,6 @@ public class TcpServerConnector implements StatefulConnector, RemoteConnectionLi
 		return address;
 	}
 	
-	private static void printOperationState(final ChannelFuture future) {
-		final StringBuilder sb = new StringBuilder();
-		sb.append("Operation Complete:");
-		if(future.isDone()) {
-			if(future.isSuccess()) {
-				sb.append("Operation is Succes");
-			}
-			else if (!future.isSuccess() && !future.isCancelled()){
-				sb.append("Operation Failed: ").append(future.cause());
-			}
-			else {
-				sb.append("Operation was cancelled");
-			}
-		}
-		else {
-			sb.append("Operation Uncompletd");
-		}
-		LOG.finest(sb.toString());
-	}
-
 	public ConnectionState getConnectionState() {
 		return state;
 	}

@@ -119,28 +119,8 @@ public class TcpClientConnector implements StatefulConnector {
 
 		@Override
 		public void operationComplete(final ChannelFuture future) throws Exception {
-			printOperationState(future);
+			LOG.finest("Operation Complete");
 		}
-	}
-
-	private static void printOperationState(final ChannelFuture future) {
-		final StringBuilder sb = new StringBuilder();
-		sb.append("Operation Complete:");
-		if(future.isDone()) {
-			if(future.isSuccess()) {
-				sb.append("Operation is Succes");
-			}
-			else if (!future.isSuccess() && !future.isCancelled()){
-				sb.append("Operation Failed: ").append(future.cause());
-			}
-			else {
-				sb.append("Operation was cancelled");
-			}
-		}
-		else {
-			sb.append("Operation Uncompletd");
-		}
-		LOG.finest(sb.toString());
 	}
 
 	@Override

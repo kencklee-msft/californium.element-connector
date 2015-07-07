@@ -49,7 +49,7 @@ public final class TransitiveFuture<V> implements Future<V> {
 			return fowardFuture.cancel(mayInterruptIfRunning);
 		}
 		else {
-			final boolean canceled =  isCancelled.compareAndSet(false, true);
+			final boolean cancelled =  isCancelled.compareAndSet(false, true);
 			waitForFowardLock.lock(); 
 			try {
 				doneOrCanclled.signalAll();
@@ -57,7 +57,7 @@ public final class TransitiveFuture<V> implements Future<V> {
 			finally{
 				waitForFowardLock.unlock();
 			}
-			return canceled;
+			return cancelled;
 		}
 	}
 
@@ -87,7 +87,7 @@ public final class TransitiveFuture<V> implements Future<V> {
 			return fowardFuture.get();
 		}
 		else {
-			throw new CancellationException("Future was Canceled");
+			throw new CancellationException("Future was Cancelled");
 		}		
 	}
 
@@ -103,7 +103,7 @@ public final class TransitiveFuture<V> implements Future<V> {
 				return fowardFuture.get(remaider, TimeUnit.MILLISECONDS);
 			}
 		}
-		throw new CancellationException("Future was Canceled");
+		throw new CancellationException("Future was Cancelled");
 	}
 	
 	private void waitForFoward() throws InterruptedException {

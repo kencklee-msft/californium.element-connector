@@ -80,8 +80,6 @@ public class TcpServerChannelInitializer extends ChannelInitializer<SocketChanne
 
 	@Override
 	public void channelActive(final ChannelHandlerContext ctx) throws Exception {
-		final InetSocketAddress remote = (InetSocketAddress)ctx.channel().remoteAddress();
-
 		((SslHandler)(ctx.pipeline().get(SSL_HANDLER_ID))).handshakeFuture().addListener(new TLSHandshakeListener());
 		super.channelActive(ctx);
 	}
@@ -97,7 +95,7 @@ public class TcpServerChannelInitializer extends ChannelInitializer<SocketChanne
 		public void operationComplete(final Future<Channel> future) throws Exception {
 			remoteConnectionListener.incomingConnectionStateChange(
 					new ConnectionInfo(ConnectionState.CONNECTED_SECURE, (InetSocketAddress)future.get().remoteAddress()));
-			LOG.info("TLS Handshake was completed ");			
+			LOG.info("TLS Handshake was completed");
 		}
 	}
 }

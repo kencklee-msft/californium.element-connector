@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.eclipse.californium.elements.RawData;
@@ -75,12 +76,31 @@ public class TcpServerConnector implements StatefulConnector, RemoteConnectionLi
 			
 			@Override
 			public void operationComplete(final ChannelFuture future) throws Exception {
-				LOG.finest("Operation Complete");
+				printOperationState(future);
 				incomingConnectionStateChange(new ConnectionInfo(ConnectionState.CONNECTED, (InetSocketAddress)future.channel().remoteAddress()));
 			}
 		});
 				
 		return communicationChannel;
+	}
+
+	private static void printOperationState(final ChannelFuture future) {
+		if (LOG.isLoggable(Level.FINEST)) {
+			final StringBuilder sb = new StringBuilder();
+			sb.append("Operation Complete:");
+			if (future.isDone()) {
+				if (future.isSuccess()) {
+					sb.append("Operation was successful");
+				} else if (!future.isSuccess() && !future.isCancelled()) {
+					sb.append("Operation Failed: ").append(future.cause());
+				} else {
+					sb.append("Operation was cancelled");
+				}
+			} else {
+				sb.append("Operation was not completed");
+			}
+			LOG.finest(sb.toString());
+		}
 	}
 
 	@Override

@@ -143,8 +143,6 @@ public class TcpServerConnector implements StatefulConnector, RemoteConnectionLi
 		LOG.finest(sb.toString());
 	}
 
-
-	@Override
 	public ConnectionState getConnectionState() {
 		return state;
 	}

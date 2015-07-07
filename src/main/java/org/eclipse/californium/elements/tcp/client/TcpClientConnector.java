@@ -18,15 +18,12 @@ import org.eclipse.californium.elements.RawData;
 import org.eclipse.californium.elements.RawDataChannel;
 import org.eclipse.californium.elements.StatefulConnector;
 import org.eclipse.californium.elements.config.TCPConnectionConfig;
-import org.eclipse.californium.elements.tcp.ConnectionInfo;
-import org.eclipse.californium.elements.tcp.ConnectionInfo.ConnectionState;
 import org.eclipse.californium.elements.tcp.ConnectionStateListener;
 import org.eclipse.californium.elements.tcp.MessageInboundTransponder;
-import org.eclipse.californium.elements.tcp.server.RemoteConnectionListener;
 import org.eclipse.californium.elements.utils.FutureAggregate;
 import org.eclipse.californium.elements.utils.TransitiveFuture;
 
-public class TcpClientConnector implements StatefulConnector, RemoteConnectionListener {
+public class TcpClientConnector implements StatefulConnector {
 
 	private static final Logger LOG = Logger.getLogger( TcpClientConnector.class.getName() );
 
@@ -36,7 +33,6 @@ public class TcpClientConnector implements StatefulConnector, RemoteConnectionLi
 	private InetSocketAddress netAddr;
 	private NioEventLoopGroup workerPool;
 	private ChannelFuture communicationChannel;
-	private ConnectionState state = ConnectionState.DISCONNECTED;
 
 	private ConnectionStateListener csl;
 
@@ -119,25 +115,11 @@ public class TcpClientConnector implements StatefulConnector, RemoteConnectionLi
 		return netAddr == null ? new InetSocketAddress(cfg.getRemoteAddress(), cfg.getRemotePort()) : netAddr;
 	}
 
-	@Override
-	public ConnectionState getConnectionState() {
-		return state;
-	}
-
-
 	private class ChannelActiveListener implements ChannelFutureListener {
 
 		@Override
 		public void operationComplete(final ChannelFuture future) throws Exception {
 			printOperationState(future);
-		}
-	}
-
-	@Override
-	public void incomingConnectionStateChange(final ConnectionInfo info) {
-		state = info.getConnectionState();
-		if(csl != null) {
-			csl.stateChange(info);
 		}
 	}
 

@@ -63,12 +63,12 @@ public class TcpServerConnector implements Connector, RemoteConnectionListener {
 
 		final ServerBootstrap bootstrap = new ServerBootstrap();
 		bootstrap.group(bossGroup, workerGroup)
-				.localAddress(address.getPort())
-				.channel(NioServerSocketChannel.class)
-				.childHandler(init)
-				.option(ChannelOption.SO_BACKLOG, 128)
-				.childOption(ChannelOption.SO_KEEPALIVE, true)
-				.childOption(ChannelOption.TCP_NODELAY, true);
+		.localAddress(address.getPort())
+		.channel(NioServerSocketChannel.class)
+		.childHandler(init)
+		.option(ChannelOption.SO_BACKLOG, 128)
+		.childOption(ChannelOption.SO_KEEPALIVE, true)
+		.childOption(ChannelOption.TCP_NODELAY, true);
 
 		communicationChannel = bootstrap.bind();
 		communicationChannel.addListener(new ChannelFutureListener() {
@@ -141,31 +141,7 @@ public class TcpServerConnector implements Connector, RemoteConnectionListener {
 	public InetSocketAddress getAddress() {
 		return address;
 	}
-<<<<<<< HEAD
 
-	private static void printOperationState(final ChannelFuture future) {
-		final StringBuilder sb = new StringBuilder();
-		sb.append("Operation Complete:");
-		if(future.isDone()) {
-			if(future.isSuccess()) {
-				sb.append("Operation is Succes");
-			}
-			else if (!future.isSuccess() && !future.isCancelled()){
-				sb.append("Operation Failed: ").append(future.cause());
-			}
-			else {
-				sb.append("Operation was cancelled");
-			}
-		}
-		else {
-			sb.append("Operation Uncompletd");
-		}
-		LOG.finest(sb.toString());
-	}
-
-=======
-	
->>>>>>> tcp_impl
 	public ConnectionState getConnectionState() {
 		return state;
 	}

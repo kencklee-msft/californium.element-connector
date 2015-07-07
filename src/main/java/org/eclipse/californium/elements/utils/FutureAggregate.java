@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class FutureAggregate<V> implements Future<V>{
 	
 	private final Future<V>[] futures;
-	private final AtomicBoolean aggregateCanceled = new AtomicBoolean(false);
+	private final AtomicBoolean aggregateCancelled = new AtomicBoolean(false);
 	private final AtomicBoolean aggregateDone = new AtomicBoolean(false);
 	
 	public FutureAggregate(final Future<V>... futures) {
@@ -19,16 +19,16 @@ public class FutureAggregate<V> implements Future<V>{
 	@Override
 	public boolean cancel(final boolean mayInterruptIfRunning) {
 		for(final Future<V> f : futures) {
-			if(aggregateCanceled.get()) {
-				aggregateCanceled.set(f.cancel(mayInterruptIfRunning));
+			if(aggregateCancelled.get()) {
+				aggregateCancelled.set(f.cancel(mayInterruptIfRunning));
 			}
 		}
-		return aggregateCanceled.get();
+		return aggregateCancelled.get();
 	}
 
 	@Override
 	public boolean isCancelled() {
-		return aggregateCanceled.get();
+		return aggregateCancelled.get();
 	}
 
 	@Override
@@ -56,7 +56,7 @@ public class FutureAggregate<V> implements Future<V>{
 				final long delta = System.currentTimeMillis() - before;
 				timeoutMs = timeoutMs - delta;
 				} else {
-					throw new TimeoutException("Could not finish all action withing given time");
+					throw new TimeoutException("Could not finish all action within the given time, " + timeoutMs);
 				}
 			}
 		}

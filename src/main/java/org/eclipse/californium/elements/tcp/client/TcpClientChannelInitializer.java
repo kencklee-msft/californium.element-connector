@@ -40,7 +40,7 @@ public class TcpClientChannelInitializer extends ChannelInitializer<SocketChanne
 	protected void initChannel(final SocketChannel ch) throws Exception {
 		LOG.log(Level.FINE, "initializing TCP Channel");
 		if(sslContext != null) {
-			LOG.log(Level.FINE, "initializing TLS Comonents");
+			LOG.log(Level.FINE, "initializing TLS Components");
 			final SSLEngine engine = sslContext.createSSLEngine();
 			engine.setUseClientMode(true);
 			final SslHandler sslHandler = new SslHandler(engine);

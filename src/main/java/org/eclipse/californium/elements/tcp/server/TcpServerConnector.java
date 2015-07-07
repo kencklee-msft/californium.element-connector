@@ -16,9 +16,9 @@ import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.eclipse.californium.elements.Connector;
 import org.eclipse.californium.elements.RawData;
 import org.eclipse.californium.elements.RawDataChannel;
-import org.eclipse.californium.elements.StatefulConnector;
 import org.eclipse.californium.elements.config.TCPConnectionConfig;
 import org.eclipse.californium.elements.tcp.ConnectionInfo;
 import org.eclipse.californium.elements.tcp.ConnectionInfo.ConnectionState;
@@ -26,11 +26,11 @@ import org.eclipse.californium.elements.tcp.ConnectionStateListener;
 import org.eclipse.californium.elements.tcp.MessageInboundTransponder;
 import org.eclipse.californium.elements.utils.FutureAggregate;
 
-public class TcpServerConnector implements StatefulConnector, RemoteConnectionListener {
-	
+public class TcpServerConnector implements Connector, RemoteConnectionListener {
+
 	private static final Logger LOG = Logger.getLogger( TcpServerConnector.class.getName() );
-	
-	private final InetSocketAddress address;	
+
+	private final InetSocketAddress address;
 	private final MessageInboundTransponder transponder;
 	private final TcpServerConnectionMgr connMgr;
 	private final TCPConnectionConfig cfg;
@@ -40,19 +40,17 @@ public class TcpServerConnector implements StatefulConnector, RemoteConnectionLi
 	private ChannelFuture communicationChannel;
 	private ConnectionState state = ConnectionState.DISCONNECTED;
 
-
 	private ConnectionStateListener csl;
 
 	public TcpServerConnector(final TCPConnectionConfig cfg) {
 		this.cfg = cfg;
 		address = new InetSocketAddress(cfg.getRemoteAddress(), cfg.getRemotePort());
-		transponder = new MessageInboundTransponder(cfg.getCallBackExecutor() != null ? 
+		transponder = new MessageInboundTransponder(cfg.getCallBackExecutor() != null ?
 				cfg.getCallBackExecutor() : Executors.newCachedThreadPool());
-		connMgr = new TcpServerConnectionMgr(this, cfg.getCallBackExecutor() != null ? 
+		connMgr = new TcpServerConnectionMgr(this, cfg.getCallBackExecutor() != null ?
 				cfg.getCallBackExecutor() : Executors.newCachedThreadPool());
-		this.csl = cfg.getListener();
 	}
-	
+
 	@Override
 	public Future<?> start() throws IOException {
 		LOG.info("Staring TCP SERVER connector with Xconn");
@@ -62,25 +60,26 @@ public class TcpServerConnector implements StatefulConnector, RemoteConnectionLi
 		if(cfg.isSecured()) {
 			init.addTLS(cfg.getSSlContext(), cfg.getSslClientCertificateRequestLevel(), cfg.getTLSVersions());
 		}
+
 		final ServerBootstrap bootstrap = new ServerBootstrap();
 		bootstrap.group(bossGroup, workerGroup)
-				.localAddress(address.getPort())
-				.channel(NioServerSocketChannel.class)
-				.childHandler(init)
-				.option(ChannelOption.SO_BACKLOG, 128)
-				.childOption(ChannelOption.SO_KEEPALIVE, true)
-				.childOption(ChannelOption.TCP_NODELAY, true);
+		.localAddress(address.getPort())
+		.channel(NioServerSocketChannel.class)
+		.childHandler(init)
+		.option(ChannelOption.SO_BACKLOG, 128)
+		.childOption(ChannelOption.SO_KEEPALIVE, true)
+		.childOption(ChannelOption.TCP_NODELAY, true);
 
 		communicationChannel = bootstrap.bind();
 		communicationChannel.addListener(new ChannelFutureListener() {
-			
+
 			@Override
 			public void operationComplete(final ChannelFuture future) throws Exception {
 				printOperationState(future);
 				incomingConnectionStateChange(new ConnectionInfo(ConnectionState.CONNECTED, (InetSocketAddress)future.channel().remoteAddress()));
 			}
 		});
-				
+
 		return communicationChannel;
 	}
 
@@ -106,9 +105,9 @@ public class TcpServerConnector implements StatefulConnector, RemoteConnectionLi
 	@Override
 	public Future<?> stop() {
 		@SuppressWarnings({ "rawtypes", "unchecked" })
-		final FutureAggregate aggregateFuture = new FutureAggregate(communicationChannel.channel().closeFuture(), 
-															  bossGroup.shutdownGracefully(),
-															  workerGroup.shutdownGracefully());
+		final FutureAggregate aggregateFuture = new FutureAggregate(communicationChannel.channel().closeFuture(),
+				bossGroup.shutdownGracefully(),
+				workerGroup.shutdownGracefully());
 		incomingConnectionStateChange(new ConnectionInfo(ConnectionState.DISCONNECTED, getAddress()));
 		return aggregateFuture;
 	}
@@ -142,7 +141,7 @@ public class TcpServerConnector implements StatefulConnector, RemoteConnectionLi
 	public InetSocketAddress getAddress() {
 		return address;
 	}
-	
+
 	public ConnectionState getConnectionState() {
 		return state;
 	}
@@ -155,9 +154,7 @@ public class TcpServerConnector implements StatefulConnector, RemoteConnectionLi
 		}
 	}
 
-	@Override
-	public void addConnectionStateListener(final ConnectionStateListener listener) {
-		this.csl = listener;
-		
+	public void setConnectionStateListener(final ConnectionStateListener csl) {
+		this.csl = csl;
 	}
 }

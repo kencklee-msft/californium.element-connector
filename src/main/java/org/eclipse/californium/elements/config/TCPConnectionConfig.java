@@ -9,14 +9,12 @@ import java.util.concurrent.Executors;
 
 import javax.net.ssl.SSLContext;
 
-import org.eclipse.californium.elements.tcp.ConnectionStateListener;
-
 public abstract class TCPConnectionConfig extends ConnectionConfig{
 
 	private final CommunicationRole role;
 	private final Map<ChannelOption<?>, Object> options = new HashMap<ChannelOption<?>, Object>();
 	private boolean isSecure = false;
-	private SSLContext sslContext;	
+	private SSLContext sslContext;
 	private SSLCLientCertReq reqCertificate;
 	private String[] tlsVersion;
 
@@ -58,16 +56,6 @@ public abstract class TCPConnectionConfig extends ConnectionConfig{
 	}
 
 	/**
-	 * if no ConnectionState Listener 
-	 * is supplied, event will not be sent up
-	 * @return
-	 */
-	public ConnectionStateListener getListener() {
-		//default implementation
-		return null;
-	}
-
-	/**
 	 * add any options the Channel
 	 * @param option
 	 * @param value
@@ -86,7 +74,7 @@ public abstract class TCPConnectionConfig extends ConnectionConfig{
 	}
 
 	/**
-	 * get the Executor containing the Threads used to send callback and notify back 
+	 * get the Executor containing the Threads used to send callback and notify back
 	 * to Californium
 	 * @return
 	 */
@@ -97,7 +85,7 @@ public abstract class TCPConnectionConfig extends ConnectionConfig{
 
 	/**
 	 * set you SSL details for a socket server
-	 * pass in the SSL context, the supported TLS version and if there is a need or obligation 
+	 * pass in the SSL context, the supported TLS version and if there is a need or obligation
 	 * for the client to have a certificate
 	 * @param context
 	 * @param reqCertificate

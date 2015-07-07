@@ -15,16 +15,15 @@ import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.eclipse.californium.elements.Connector;
 import org.eclipse.californium.elements.RawData;
 import org.eclipse.californium.elements.RawDataChannel;
-import org.eclipse.californium.elements.StatefulConnector;
 import org.eclipse.californium.elements.config.TCPConnectionConfig;
-import org.eclipse.californium.elements.tcp.ConnectionStateListener;
 import org.eclipse.californium.elements.tcp.MessageInboundTransponder;
 import org.eclipse.californium.elements.utils.FutureAggregate;
 import org.eclipse.californium.elements.utils.TransitiveFuture;
 
-public class TcpClientConnector implements StatefulConnector {
+public class TcpClientConnector implements Connector {
 
 	private static final Logger LOG = Logger.getLogger( TcpClientConnector.class.getName() );
 
@@ -35,17 +34,11 @@ public class TcpClientConnector implements StatefulConnector {
 	private NioEventLoopGroup workerPool;
 	private ChannelFuture communicationChannel;
 
-	private ConnectionStateListener csl;
-
-
 	public TcpClientConnector(final TCPConnectionConfig cfg) {
 		this.cfg = cfg;
-		transponder = new MessageInboundTransponder(cfg.getCallBackExecutor() != null ? 
+		transponder = new MessageInboundTransponder(cfg.getCallBackExecutor() != null ?
 				cfg.getCallBackExecutor() : Executors.newCachedThreadPool());
-		this.csl = cfg.getListener();
 	}
-
-
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
@@ -63,10 +56,9 @@ public class TcpClientConnector implements StatefulConnector {
 		}
 
 		final Bootstrap bootstrap = new Bootstrap();
-		bootstrap.group(workerPool)
-.remoteAddress(netAddr).channel(NioSocketChannel.class).handler(init);
+		bootstrap.group(workerPool).remoteAddress(netAddr).channel(NioSocketChannel.class).handler(init);
 
-		communicationChannel = bootstrap.connect();		
+		communicationChannel = bootstrap.connect();
 		communicationChannel.addListener(new ChannelActiveListener());
 		connectionStep.addFirst(communicationChannel);
 		return new FutureAggregate(connectionStep.toArray(new Future<?>[connectionStep.size()]));
@@ -77,8 +69,7 @@ public class TcpClientConnector implements StatefulConnector {
 	public Future<?> stop() {
 		FutureAggregate aggregateFuture = null;
 		if(communicationChannel != null) {
-			aggregateFuture = new FutureAggregate(communicationChannel.channel().closeFuture(),
- workerPool.shutdownGracefully());
+			aggregateFuture = new FutureAggregate(communicationChannel.channel().closeFuture(), workerPool.shutdownGracefully());
 		}
 		netAddr = null;
 		return aggregateFuture != null ? aggregateFuture : new FutureAggregate();
@@ -141,8 +132,4 @@ public class TcpClientConnector implements StatefulConnector {
 		}
 	}
 
-	@Override
-	public void addConnectionStateListener(final ConnectionStateListener listener) {
-		csl = listener;
-	}
 }

@@ -47,12 +47,12 @@ public class TcpServerConnector extends ChannelInitializer<SocketChannel> implem
 
 	private ConnectionStateListener csl;
 
-	public TcpServerConnector(final String remoteAddress, final int remotePort) {
-		this(remoteAddress, remotePort, Executors.newCachedThreadPool());
+	public TcpServerConnector(final String bindAddress, final int bindPort) {
+		this(bindAddress, bindPort, Executors.newCachedThreadPool());
 	}
 
-	public TcpServerConnector(final String remoteAddress, final int remotePort, final Executor callbackExecutor) {
-		address = new InetSocketAddress(remoteAddress, remotePort);
+	public TcpServerConnector(final String bindAddress, final int bindPort, final Executor callbackExecutor) {
+		address = new InetSocketAddress(bindAddress, bindPort);
 		transponder = new MessageInboundTransponder(callbackExecutor);
 		connMgr = new TcpServerConnectionMgr(this, callbackExecutor);
 	}

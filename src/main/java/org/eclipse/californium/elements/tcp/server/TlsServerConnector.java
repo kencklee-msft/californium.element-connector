@@ -26,12 +26,12 @@ public class TlsServerConnector extends TcpServerConnector {
 	private final SSLClientCertReq clientCertRequest;
 	private final String[] supportedTLSVersions;
 
-	public TlsServerConnector(final String remoteAddress, final int remotePort, final SSLContext sslContext, final SSLClientCertReq clientCertRequest, final String... supportedTLSVersions) {
-		this(remoteAddress, remotePort, Executors.newCachedThreadPool(), sslContext, clientCertRequest, supportedTLSVersions);
+	public TlsServerConnector(final String bindAddress, final int bindPort, final SSLContext sslContext, final SSLClientCertReq clientCertRequest, final String... supportedTLSVersions) {
+		this(bindAddress, bindPort, Executors.newCachedThreadPool(), sslContext, clientCertRequest, supportedTLSVersions);
 	}
 
-	public TlsServerConnector(final String remoteAddress, final int remotePort, final Executor callbackExecutor, final SSLContext sslContext, final SSLClientCertReq clientCertRequest, final String... supportedTLSVersions) {
-		super(remoteAddress, remotePort, callbackExecutor);
+	public TlsServerConnector(final String bindAddress, final int bindPort, final Executor callbackExecutor, final SSLContext sslContext, final SSLClientCertReq clientCertRequest, final String... supportedTLSVersions) {
+		super(bindAddress, bindPort, callbackExecutor);
 		this.sslContext = sslContext;
 		this.clientCertRequest = clientCertRequest;
 		this.supportedTLSVersions = supportedTLSVersions;

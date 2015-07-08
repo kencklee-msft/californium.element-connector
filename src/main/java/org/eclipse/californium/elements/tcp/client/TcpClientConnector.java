@@ -1,15 +1,18 @@
 package org.eclipse.californium.elements.tcp.client;
 
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelInitializer;
 import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.handler.codec.bytes.ByteArrayDecoder;
+import io.netty.handler.codec.bytes.ByteArrayEncoder;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.LinkedList;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
@@ -18,61 +21,65 @@ import java.util.logging.Logger;
 import org.eclipse.californium.elements.Connector;
 import org.eclipse.californium.elements.RawData;
 import org.eclipse.californium.elements.RawDataChannel;
-import org.eclipse.californium.elements.config.TCPConnectionConfig;
 import org.eclipse.californium.elements.tcp.MessageInboundTransponder;
+import org.eclipse.californium.elements.tcp.framing.FourByteFieldPrepender;
+import org.eclipse.californium.elements.tcp.framing.FourByteFrameDecoder;
 import org.eclipse.californium.elements.utils.FutureAggregate;
-import org.eclipse.californium.elements.utils.TransitiveFuture;
 
-public class TcpClientConnector implements Connector {
+public class TcpClientConnector extends ChannelInitializer<SocketChannel> implements Connector {
 
 	private static final Logger LOG = Logger.getLogger( TcpClientConnector.class.getName() );
 
-	private final MessageInboundTransponder transponder;
-	private final TCPConnectionConfig cfg;
+	protected final MessageInboundTransponder transponder;
+	private final String remoteAddress;
+	private final int remotePort;
 
 	private InetSocketAddress netAddr;
 	private NioEventLoopGroup workerPool;
 	private ChannelFuture communicationChannel;
 
-	public TcpClientConnector(final TCPConnectionConfig cfg) {
-		this.cfg = cfg;
-		transponder = new MessageInboundTransponder(cfg.getCallBackExecutor() != null ?
-				cfg.getCallBackExecutor() : Executors.newCachedThreadPool());
+	public TcpClientConnector(final String remoteAddress, final int remotePort) {
+		this(remoteAddress, remotePort, Executors.newCachedThreadPool());
 	}
 
-	@SuppressWarnings({ "rawtypes", "unchecked" })
+	public TcpClientConnector(final String remoteAddress, final int remotePort, final Executor callbackExecutor) {
+		this.remoteAddress = remoteAddress;
+		this.remotePort = remotePort;
+		transponder = new MessageInboundTransponder(callbackExecutor);
+	}
+
+	@Override
+	protected void initChannel(final SocketChannel ch) throws Exception {
+		LOG.fine("initializing TCP Channel");
+		ch.pipeline().addLast(new FourByteFrameDecoder(),
+				new FourByteFieldPrepender(),
+				new ByteArrayDecoder(),
+				new ByteArrayEncoder(),
+				transponder);
+	}
+
 	@Override
 	public Future<?> start() throws IOException {
-		final LinkedList<Future<?>> connectionStep = new LinkedList<Future<?>>();
 		LOG.info("Staring TCP CLIENT connector");
-		netAddr = new InetSocketAddress(cfg.getRemoteAddress(), cfg.getRemotePort());
 		workerPool = new NioEventLoopGroup();
 
-		final TcpClientChannelInitializer init = new TcpClientChannelInitializer(transponder);
-		if(cfg.isSecured()) {
-			final TransitiveFuture<Channel> tlsSecuredFuture = new TransitiveFuture<Channel>();
-			init.addTLS(cfg.getSSlContext(), tlsSecuredFuture);
-			connectionStep.add(tlsSecuredFuture);
-		}
-
+		final InetSocketAddress inetSocketAddress = getAddress();
 		final Bootstrap bootstrap = new Bootstrap();
-		bootstrap.group(workerPool).remoteAddress(netAddr).channel(NioSocketChannel.class).handler(init);
+		bootstrap.group(workerPool).remoteAddress(inetSocketAddress).channel(NioSocketChannel.class).handler(this);
 
 		communicationChannel = bootstrap.connect();
 		communicationChannel.addListener(new ChannelActiveListener());
-		connectionStep.addFirst(communicationChannel);
-		return new FutureAggregate(connectionStep.toArray(new Future<?>[connectionStep.size()]));
+		return communicationChannel;
 	}
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
 	public Future<?> stop() {
-		FutureAggregate aggregateFuture = null;
-		if(communicationChannel != null) {
-			aggregateFuture = new FutureAggregate(communicationChannel.channel().closeFuture(), workerPool.shutdownGracefully());
-		}
 		netAddr = null;
-		return aggregateFuture != null ? aggregateFuture : new FutureAggregate();
+		if(communicationChannel != null) {
+			return new FutureAggregate(communicationChannel.channel().closeFuture(), workerPool.shutdownGracefully());
+		}
+		return new FutureAggregate();
 	}
 
 	@Override
@@ -102,7 +109,7 @@ public class TcpClientConnector implements Connector {
 	 * @see org.eclipse.californium.elements.Connector#getAddress()
 	 */
 	public InetSocketAddress getAddress() {
-		return netAddr == null ? new InetSocketAddress(cfg.getRemoteAddress(), cfg.getRemotePort()) : netAddr;
+		return netAddr == null ? new InetSocketAddress(remoteAddress, remotePort) : netAddr;
 	}
 
 	private class ChannelActiveListener implements ChannelFutureListener {

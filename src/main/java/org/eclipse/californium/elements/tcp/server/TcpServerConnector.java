@@ -4,13 +4,18 @@ import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.bytes.ByteArrayDecoder;
+import io.netty.handler.codec.bytes.ByteArrayEncoder;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
@@ -19,21 +24,21 @@ import java.util.logging.Logger;
 import org.eclipse.californium.elements.Connector;
 import org.eclipse.californium.elements.RawData;
 import org.eclipse.californium.elements.RawDataChannel;
-import org.eclipse.californium.elements.config.TCPConnectionConfig;
 import org.eclipse.californium.elements.tcp.ConnectionInfo;
 import org.eclipse.californium.elements.tcp.ConnectionInfo.ConnectionState;
 import org.eclipse.californium.elements.tcp.ConnectionStateListener;
 import org.eclipse.californium.elements.tcp.MessageInboundTransponder;
+import org.eclipse.californium.elements.tcp.framing.FourByteFieldPrepender;
+import org.eclipse.californium.elements.tcp.framing.FourByteFrameDecoder;
 import org.eclipse.californium.elements.utils.FutureAggregate;
 
-public class TcpServerConnector implements Connector, RemoteConnectionListener {
+public class TcpServerConnector extends ChannelInitializer<SocketChannel> implements Connector, RemoteConnectionListener {
 
 	private static final Logger LOG = Logger.getLogger( TcpServerConnector.class.getName() );
 
 	private final InetSocketAddress address;
 	private final MessageInboundTransponder transponder;
 	private final TcpServerConnectionMgr connMgr;
-	private final TCPConnectionConfig cfg;
 
 	private EventLoopGroup bossGroup;
 	private EventLoopGroup workerGroup;
@@ -42,13 +47,24 @@ public class TcpServerConnector implements Connector, RemoteConnectionListener {
 
 	private ConnectionStateListener csl;
 
-	public TcpServerConnector(final TCPConnectionConfig cfg) {
-		this.cfg = cfg;
-		address = new InetSocketAddress(cfg.getRemoteAddress(), cfg.getRemotePort());
-		transponder = new MessageInboundTransponder(cfg.getCallBackExecutor() != null ?
-				cfg.getCallBackExecutor() : Executors.newCachedThreadPool());
-		connMgr = new TcpServerConnectionMgr(this, cfg.getCallBackExecutor() != null ?
-				cfg.getCallBackExecutor() : Executors.newCachedThreadPool());
+	public TcpServerConnector(final String remoteAddress, final int remotePort) {
+		this(remoteAddress, remotePort, Executors.newCachedThreadPool());
+	}
+
+	public TcpServerConnector(final String remoteAddress, final int remotePort, final Executor callbackExecutor) {
+		address = new InetSocketAddress(remoteAddress, remotePort);
+		transponder = new MessageInboundTransponder(callbackExecutor);
+		connMgr = new TcpServerConnectionMgr(this, callbackExecutor);
+	}
+
+	@Override
+	protected void initChannel(final SocketChannel ch) throws Exception {
+		ch.pipeline().addLast(new FourByteFrameDecoder(),
+				new FourByteFieldPrepender(),
+				new ByteArrayDecoder(),
+				new ByteArrayEncoder(),
+				connMgr,
+				transponder);
 	}
 
 	@Override
@@ -56,16 +72,12 @@ public class TcpServerConnector implements Connector, RemoteConnectionListener {
 		LOG.info("Staring TCP SERVER connector with Xconn");
 		bossGroup = new NioEventLoopGroup(50);
 		workerGroup = new NioEventLoopGroup(50);
-		final TcpServerChannelInitializer init = new TcpServerChannelInitializer(transponder, connMgr, this);
-		if(cfg.isSecured()) {
-			init.addTLS(cfg.getSSlContext(), cfg.getSslClientCertificateRequestLevel(), cfg.getTLSVersions());
-		}
 
 		final ServerBootstrap bootstrap = new ServerBootstrap();
 		bootstrap.group(bossGroup, workerGroup)
 		.localAddress(address.getPort())
 		.channel(NioServerSocketChannel.class)
-		.childHandler(init)
+		.childHandler(this)
 		.option(ChannelOption.SO_BACKLOG, 128)
 		.childOption(ChannelOption.SO_KEEPALIVE, true)
 		.childOption(ChannelOption.TCP_NODELAY, true);
@@ -123,11 +135,11 @@ public class TcpServerConnector implements Connector, RemoteConnectionListener {
 	public Future<?> send(final RawData msg) {
 		final Channel ch = connMgr.getChannel(msg.getInetSocketAddress());
 		if(ch != null) {
-			LOG.finest("Sending " + msg.getSize() + " byte" + " to " + ch.remoteAddress().toString());
+			LOG.finest("Sending " + msg.getSize() + " byte" + " to " + ch.remoteAddress());
 			return ch.writeAndFlush(msg.getBytes());
 		}
 		else {
-			LOG.finest("No Channel available to message.  Unknown Connection " + msg.getAddress().toString());
+			LOG.finest("No Channel available to message.  Unknown Connection " + msg.getAddress());
 			return null;
 		}
 	}

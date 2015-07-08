@@ -6,10 +6,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.eclipse.californium.elements.config.TCPConnectionConfig;
-
-//TODO this class should either be brought into the Californium builder or possibly removed.
-@Deprecated
 public class ThreadSafeTcpServerConnector extends TcpServerConnector{
 	private static final Logger LOG = Logger.getLogger( ThreadSafeTcpServerConnector.class.getName() );
 

@@ -36,16 +36,16 @@ public class TlsClientConnector extends TcpClientConnector {
 	protected void initChannel(final SocketChannel ch) throws Exception {
 		super.initChannel(ch);
 		LOG.log(Level.FINE, "initializing TLS Components");
-		final SSLEngine engine = sslContext.createSSLEngine();
-		engine.setUseClientMode(true);
-		sslHandler = new SslHandler(engine);
-		ch.pipeline().addFirst(SSL_HANDLER_ID, sslHandler);//init the TLS since we are the client
+		ch.pipeline().addFirst(SSL_HANDLER_ID, sslHandler);
 	}
 
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
 	public Future<?> start() throws IOException {
+		final SSLEngine engine = sslContext.createSSLEngine();
+		engine.setUseClientMode(true);
+		sslHandler = new SslHandler(engine);
 		return new FutureAggregate(super.start(), sslHandler.handshakeFuture());
 	}
 

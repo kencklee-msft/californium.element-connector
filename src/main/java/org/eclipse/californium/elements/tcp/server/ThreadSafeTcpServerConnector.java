@@ -6,7 +6,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class ThreadSafeTcpServerConnector extends TcpServerConnector{
+public class ThreadSafeTcpServerConnector extends TcpServerConnector {
 	private static final Logger LOG = Logger.getLogger( ThreadSafeTcpServerConnector.class.getName() );
 
 	public final ReentrantLock lock = new ReentrantLock();
@@ -14,8 +14,8 @@ public class ThreadSafeTcpServerConnector extends TcpServerConnector{
 	public Future<?> startFuture;
 	public Future<?> stopFuture;
 
-	public ThreadSafeTcpServerConnector(final TCPConnectionConfig cfg) {
-		super(cfg);
+	public ThreadSafeTcpServerConnector(final String bindAddress, final int bindPort) {
+		super(bindAddress, bindPort);
 	}
 
 	@Override

@@ -1,9 +1,8 @@
 package org.eclipse.californium.elements.tcp;
 
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.util.internal.StringUtil;
 
 import java.net.InetSocketAddress;
@@ -15,7 +14,7 @@ import org.eclipse.californium.elements.RawData;
 import org.eclipse.californium.elements.RawDataChannel;
 
 @Sharable
-public class MessageInboundTransponder extends ChannelInboundHandlerAdapter{
+public class MessageInboundTransponder extends SimpleChannelInboundHandler<byte[]> {
 
 	private static final Logger LOG = Logger.getLogger( MessageInboundTransponder.class.getName() );
 
@@ -34,13 +33,10 @@ public class MessageInboundTransponder extends ChannelInboundHandlerAdapter{
 	}
 
 	@Override
-	public void channelRead(final ChannelHandlerContext ctx, final Object msg) throws Exception {
+	public void channelRead0(final ChannelHandlerContext ctx, final byte[] msg) throws Exception {
 		final InetSocketAddress remote = (InetSocketAddress) ctx.channel().remoteAddress();
 		if(rawDataChannel != null) {
-			final ByteBuf bb = (ByteBuf) msg;
-			final byte[] message = new byte[bb.capacity()];
-			bb.getBytes(0, message);
-			notify(message, remote);
+			notify(msg, remote);
 		}
 	}
 

@@ -19,9 +19,12 @@ package org.eclipse.californium.elements;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import org.eclipse.californium.elements.utils.VoidFuture;
 
 /**
  * ConnectorBase is a partial implementation of a {@link Connector}. It connects
@@ -61,7 +64,7 @@ public abstract class ConnectorBase implements Connector {
 	 *
 	 * @param address the address to listen to
 	 */
-	public ConnectorBase(InetSocketAddress address) {
+	public ConnectorBase(final InetSocketAddress address) {
 		if (address == null)
 			throw new NullPointerException();
 		this.localAddr = address;
@@ -70,6 +73,7 @@ public abstract class ConnectorBase implements Connector {
 		this.outgoing = new LinkedBlockingQueue<RawData>();
 	}
 	
+	@Override
 	public InetSocketAddress getAddress() {
 		return localAddr;
 	}
@@ -122,7 +126,7 @@ public abstract class ConnectorBase implements Connector {
 	 * @throws Exception any exception that occurs
 	 */
 	private void receiveNextMessageFromNetwork() throws Exception {
-		RawData raw = receiveNext();
+		final RawData raw = receiveNext();
 		if (raw != null)
 			receiver.receiveData(raw);
 	}
@@ -134,7 +138,7 @@ public abstract class ConnectorBase implements Connector {
 	 * @throws Exception the exception
 	 */
 	private void sendNextMessageOverNetwork() throws Exception {
-		RawData raw = outgoing.take(); // Blocking
+		final RawData raw = outgoing.take(); // Blocking
 		if (raw == null)
 			throw new NullPointerException();
 		sendNext(raw);
@@ -144,33 +148,39 @@ public abstract class ConnectorBase implements Connector {
 	 * @see ch.inf.vs.californium.network.connector.Connector#start()
 	 */
 	@Override
-	public synchronized void start() throws IOException {
-		if (running) return;
+	public synchronized Future<?> start() throws IOException {
+		final VoidFuture voidFuture = new VoidFuture();
+		if (running) return voidFuture;
 		running = true;
 
-		int senderCount = getSenderThreadCount();
-		int receiverCount = getReceiverThreadCount();
+		final int senderCount = getSenderThreadCount();
+		final int receiverCount = getReceiverThreadCount();
 		LOGGER.config(getName()+"-connector starts "+senderCount+" sender threads and "+receiverCount+" receiver threads");
 		
 		senderThread = new Worker(getName()+"-Sender-"+localAddr) {
+				@Override
 				public void work() throws Exception { sendNextMessageOverNetwork(); }
 			};
 
 		receiverThread = new Worker(getName()+"-Receiver-"+localAddr) {
+				@Override
 				public void work() throws Exception { receiveNextMessageFromNetwork(); }
 			};
 		
 		receiverThread.start();
 		senderThread.start();
+		return voidFuture;
 	}
 
 	@Override
-	public synchronized void stop() {
-		if (!running) return;
+	public synchronized Future<?> stop() {
+		final VoidFuture voidFuture = new VoidFuture();
+		if (!running) return voidFuture;
 		running = false;
 		senderThread.interrupt();
 		receiverThread.interrupt();
 		outgoing.clear();
+		return voidFuture;
 	}
 
 	/**
@@ -182,14 +192,15 @@ public abstract class ConnectorBase implements Connector {
 	public synchronized void destroy() { }
 
 	@Override
-	public void send(RawData msg) {
+	public Future<?> send(final RawData msg) {
 		if (msg == null)
 			throw new NullPointerException();
 		outgoing.add(msg);
+		return new VoidFuture();
 	}
 
 	@Override
-	public void setRawDataReceiver(RawDataChannel receiver) {
+	public void setRawDataReceiver(final RawDataChannel receiver) {
 		this.receiver = receiver;
 	}
 	
@@ -206,18 +217,19 @@ public abstract class ConnectorBase implements Connector {
 		 *
 		 * @param name the name, e.g., of the transport protocol
 		 */
-		private Worker(String name) {
+		private Worker(final String name) {
 			super(name);
 			setDaemon(true);
 		}
 
+		@Override
 		public void run() {
 			try {
 				LOGGER.fine("Starting thread "+getName());
 				while (running) {
 					try {
 						work();
-					} catch (Throwable t) {
+					} catch (final Throwable t) {
 						if (running)
 							LOGGER.log(Level.WARNING, "Exception \""+t+"\" in thread "+getName(), t);
 						else
@@ -261,7 +273,7 @@ public abstract class ConnectorBase implements Connector {
 	 *
 	 * @param receiver the new receiver
 	 */
-	public void setReceiver(RawDataChannel receiver) {
+	public void setReceiver(final RawDataChannel receiver) {
 		this.receiver = receiver;
 	}
 

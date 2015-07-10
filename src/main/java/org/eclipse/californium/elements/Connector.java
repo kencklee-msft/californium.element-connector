@@ -18,6 +18,7 @@ package org.eclipse.californium.elements;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.util.concurrent.Future;
 
 /**
  * A managed interface for exchanging messages between networked clients and a
@@ -45,7 +46,7 @@ public interface Connector {
 	 * @throws IOException
 	 *             Signals that an I/O exception has occurred.
 	 */
-	public void start() throws IOException;
+	public Future<?> start() throws IOException;
 
 	/**
 	 * Stops the connector.
@@ -55,7 +56,7 @@ public interface Connector {
 	 * been stopped using this method can be started again using the
 	 * {@link #start()} method.
 	 */
-	public void stop();
+	public Future<?> stop();
 
 	/**
 	 * Stops the connector and cleans up any leftovers.
@@ -71,7 +72,7 @@ public interface Connector {
 	 * 
 	 * @param msg the message to be sent
 	 */
-	public void send(RawData msg);
+	public Future<?> send(RawData msg);
 
 	/**
 	 * Sets the handler for incoming messages.
